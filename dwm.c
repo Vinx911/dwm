@@ -179,6 +179,7 @@ static void focusmon(const Arg *arg);
 static void focusstackvis(const Arg *arg);
 static void focusstackhid(const Arg *arg);
 static void focusstack(int inc, int vis);
+static void grid(Monitor *m);
 static Atom getatomprop(Client *c, Atom prop);
 static int getrootptr(int *x, int *y);
 static long getstate(Window w);
@@ -965,6 +966,44 @@ focusstack(int inc, int hid)
 		}
 	}
 }
+
+
+void
+grid(Monitor *m) {
+	unsigned int n, cols, rows, cn, rn, i, cx, cy, cw, ch;
+	Client *c;
+
+	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++) ;
+	if(n == 0)
+		return;
+
+	/* grid dimensions */
+	for(cols = 0; cols <= n/2; cols++)
+		if(cols*cols >= n)
+			break;
+	if(n == 5) /* set layout against the general calculation: not 1:2:2, but 2:3 */
+		cols = 2;
+	rows = n/cols;
+
+	/* window geometries */
+	cw = cols ? (m->ww - 2 * m->gappx - (cols-1) * m->gappx) / cols : m->ww;
+	cn = 0; /* current column number */
+	rn = 0; /* current row number */
+	for(i = 0, c = nexttiled(m->clients); c; i++, c = nexttiled(c->next)) {
+		if(i/rows + 1 > cols - n%cols)
+			rows = n/cols + 1;
+		ch = rows ? (m->wh - 2 * m->gappx - (rows - 1) * m->gappx) / rows : m->wh;
+		cx = m->wx + cn*(cw + m->gappx);
+		cy = m->wy + rn*(ch + m->gappx);
+		resize(c, cx + m->gappx, cy + gappx, cw - 2 * c->bw, ch - 2 * c->bw, False);
+		rn++;
+		if(rn >= rows) {
+			rn = 0;
+			cn++;
+		}
+	}
+}
+
 
 Atom
 getatomprop(Client *c, Atom prop)
