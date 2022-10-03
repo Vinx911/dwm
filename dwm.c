@@ -942,9 +942,9 @@ drawbar(Monitor *m)
 					remainder--;
 				}
 
-				drw_text(drw, x, 0, tabw, bh, lrpad / 2 + (m->sel->icon ? m->sel->icw + winiconspacing : 0), c->name, 0);
-				if (m->sel->icon) 
-					drw_pic(drw, x + lrpad / 2, (bh - m->sel->ich) / 2, m->sel->icw, m->sel->ich, m->sel->icon);
+				drw_text(drw, x, 0, tabw, bh, lrpad / 2 + (c->icon ? c->icw + winiconspacing : 0), c->name, 0);
+				if (c->icon) 
+					drw_pic(drw, x + lrpad / 2, (bh - c->ich) / 2, c->icw, c->ich, c->icon);
  	
 				x += tabw;
 			}
@@ -2867,7 +2867,7 @@ updatesystray(int updatebar)
 		XMapRaised(dpy, i->win);
 		w += systrayspacing;
 		i->x = w;
-		XMoveResizeWindow(dpy, i->win, i->x, 0, i->w, i->h);
+		XMoveResizeWindow(dpy, i->win, i->x, (bh - i->h) / 2, i->w, i->h);
 		w += i->w;
 		if (i->mon != m)
 			i->mon = m;
@@ -2893,24 +2893,24 @@ void
 updatesystrayicongeom(Client *i, int w, int h)
 {
 	if (i) {
-		i->h = bh;
+		i->h = winiconsize;
 		if (w == h)
-			i->w = bh;
-		else if (h == bh)
+			i->w = winiconsize;
+		else if (h == winiconsize)
 			i->w = w;
 		else
-			i->w = (int) ((float)bh * ((float)w / (float)h));
+			i->w = (int) ((float)winiconsize * ((float)w / (float)h));
 		applysizehints(i, &(i->x), &(i->y), &(i->w), &(i->h), False);
 		/* force icons into the systray dimensions if they don't want to */
-		if (i->h > bh) {
+		if (i->h > winiconsize) {
 			if (i->w == i->h)
-				i->w = bh;
+				i->w = winiconsize;
 			else
-				i->w = (int) ((float)bh * ((float)i->w / (float)i->h));
-			i->h = bh;
+				i->w = (int) ((float)winiconsize * ((float)i->w / (float)i->h));
+			i->h = winiconsize;
 		}
-		if (i->w > 2*bh)
-			i->w = bh;
+		if (i->w > 2*winiconsize)
+			i->w = winiconsize;
 	}
 }
 
