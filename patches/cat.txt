@@ -2,6 +2,7 @@ dwm-alpha		透明效果
 dwm-autostart		自启动脚本
 dwm-awesomebar		任务栏增强
 dwm-fullgaps		窗口间距
+dwm-barpadding		bar边距
 dwm-fullscreen		全屏
 dwm-gaplessgrid		网格布局
 dwm-hide-and-restore	隐藏和恢复窗口
