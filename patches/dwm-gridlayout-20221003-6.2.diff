@@ -1,0 +1,77 @@
+diff --git a/config.def.h b/config.def.h
+index 3025df0..d2eef65 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -52,6 +52,7 @@ static const Layout layouts[] = {
+ 	{ "[]=",      tile },    /* first entry is default */
+ 	{ "><>",      NULL },    /* no layout function means floating behavior */
+ 	{ "[M]",      monocle },
++	{ "###",      grid },
+ };
+ 
+ /* key definitions */
+@@ -88,6 +89,7 @@ static const Key keys[] = {
+ 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
+ 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
+ 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
++	{ MODKEY,                       XK_g,      setlayout,      {.v = &layouts[3]} },
+ 	{ MODKEY|ShiftMask,             XK_f,      fullscreen,     {0} },
+ 	{ MODKEY,                       XK_space,  setlayout,      {0} },
+ 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
+diff --git a/dwm.c b/dwm.c
+index fa8341d..54e5834 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -179,6 +179,7 @@ static void focusmon(const Arg *arg);
+ static void focusstackvis(const Arg *arg);
+ static void focusstackhid(const Arg *arg);
+ static void focusstack(int inc, int vis);
++static void grid(Monitor *m);
+ static Atom getatomprop(Client *c, Atom prop);
+ static int getrootptr(int *x, int *y);
+ static long getstate(Window w);
+@@ -966,6 +967,44 @@ focusstack(int inc, int hid)
+ 	}
+ }
+ 
++
++void
++grid(Monitor *m) {
++	unsigned int n, cols, rows, cn, rn, i, cx, cy, cw, ch;
++	Client *c;
++
++	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++) ;
++	if(n == 0)
++		return;
++
++	/* grid dimensions */
++	for(cols = 0; cols <= n/2; cols++)
++		if(cols*cols >= n)
++			break;
++	if(n == 5) /* set layout against the general calculation: not 1:2:2, but 2:3 */
++		cols = 2;
++	rows = n/cols;
++
++	/* window geometries */
++	cw = cols ? (m->ww - 2 * m->gappx - (cols-1) * m->gappx) / cols : m->ww;
++	cn = 0; /* current column number */
++	rn = 0; /* current row number */
++	for(i = 0, c = nexttiled(m->clients); c; i++, c = nexttiled(c->next)) {
++		if(i/rows + 1 > cols - n%cols)
++			rows = n/cols + 1;
++		ch = rows ? (m->wh - 2 * m->gappx - (rows - 1) * m->gappx) / rows : m->wh;
++		cx = m->wx + cn*(cw + m->gappx);
++		cy = m->wy + rn*(ch + m->gappx);
++		resize(c, cx + m->gappx, cy + gappx, cw - 2 * c->bw, ch - 2 * c->bw, False);
++		rn++;
++		if(rn >= rows) {
++			rn = 0;
++			cn++;
++		}
++	}
++}
++
++
+ Atom
+ getatomprop(Client *c, Atom prop)
+ {
