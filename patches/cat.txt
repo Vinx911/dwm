@@ -1,7 +1,6 @@
 dwm-alpha		透明效果
 dwm-autostart		自启动脚本
 dwm-awesomebar		任务栏增强
-dwm-fixborders		修复alpha透明边框
 dwm-fullgaps		窗口间距
 dwm-fullscreen		全屏
 dwm-gaplessgrid		网格布局
