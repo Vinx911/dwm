@@ -2197,7 +2197,7 @@ setup(void)
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
-	bh = drw->fonts->h + 2;
+	bh = drw->fonts->h + userbarheight;
 	updategeom();
 	/* init atoms */
 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
@@ -2868,7 +2868,7 @@ updatesystray(int updatebar)
 		w += systrayspacing;
 		i->x = w;
 		XMoveResizeWindow(dpy, i->win, i->x, (bh - i->h) / 2, i->w, i->h);
-		w += i->w;
+		w += i->w + systrayspacing;
 		if (i->mon != m)
 			i->mon = m;
 	}
@@ -2893,24 +2893,24 @@ void
 updatesystrayicongeom(Client *i, int w, int h)
 {
 	if (i) {
-		i->h = winiconsize;
+		i->h = systrayiconsize;
 		if (w == h)
-			i->w = winiconsize;
-		else if (h == winiconsize)
+			i->w = systrayiconsize;
+		else if (h == systrayiconsize)
 			i->w = w;
 		else
-			i->w = (int) ((float)winiconsize * ((float)w / (float)h));
+			i->w = (int) ((float)systrayiconsize * ((float)w / (float)h));
 		applysizehints(i, &(i->x), &(i->y), &(i->w), &(i->h), False);
 		/* force icons into the systray dimensions if they don't want to */
-		if (i->h > winiconsize) {
+		if (i->h > systrayiconsize) {
 			if (i->w == i->h)
-				i->w = winiconsize;
+				i->w = systrayiconsize;
 			else
-				i->w = (int) ((float)winiconsize * ((float)i->w / (float)i->h));
-			i->h = winiconsize;
+				i->w = (int) ((float)systrayiconsize * ((float)i->w / (float)i->h));
+			i->h = systrayiconsize;
 		}
-		if (i->w > 2*winiconsize)
-			i->w = winiconsize;
+		if (i->w > 2*systrayiconsize)
+			i->w = systrayiconsize;
 	}
 }
 
