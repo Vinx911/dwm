@@ -1,20 +1,20 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  				= 1;	/* border pixel of windows */
-static const unsigned int gappx     				= 5;	/* gaps between windows */
-static const unsigned int snap      				= 32;	/* snap pixel */
-static const int          showbar            		= 1;	/* 0 means no bar */
-static const int          topbar             		= 1;	/* 0 means bottom bar */
-static const int 		  userbarheight             = 8;    /* 2 is the default spacing around the bar's font */
-static const unsigned int systrayiconsize 			= 20;   /* systray icon size */
-static const unsigned int systraypinning 			= 2;   	/* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
-static const unsigned int systrayspacing 			= 2;   	/* systray spacing */
-static const int          systraypinningfailfirst 	= 1;   	/* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
-static const int          showsystray             	= 1;   	/* 0 means no systray */
-static const Bool         viewontag				 	= True; /* Switch view on tag switch */
-static const int          winiconsize             	= 16;   /* win icon size */
-static const int          winiconspacing            = 5;    /* space between icon and title */
+static const unsigned int borderpx  				= 1;	/* 窗口的边框像素 */
+static const unsigned int gappx     				= 5;	/* 窗口间隔 */
+static const unsigned int snap      				= 32;	/* 快照像素,用于鼠标移动 */
+static const int          showbar            		= 1;	/* 1: 显示bar */
+static const int          topbar             		= 1;	/* 1: 顶部显示bar, 0: 底部显示bar */
+static const int 		  userbarheight             = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
+static const unsigned int systrayiconsize 			= 20;   /* 系统托盘图标尺寸 */
+static const unsigned int systraypinning 			= 2;   	/* 0：系统托盘跟随选定的监视器，> 0：将系统托盘固定到监视器 X  */
+static const unsigned int systrayspacing 			= 2;   	/* 系统托盘间距 */
+static const int          systraypinningfailfirst 	= 1;   	/* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，False：在最后一台显示器上显示系统托盘 */
+static const int          showsystray             	= 1;   	/* 是否显示系统托盘 */
+static const Bool         viewontag				 	= True; /* 选择视图跟随tag开关 */
+static const int          winiconsize             	= 16;   /* 窗口图标尺寸 */
+static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
 
 
 static const char *fonts[]          = { "monospace:size=10" };
@@ -54,7 +54,7 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
+static const float mfact     = 0.55; /* 主区域大小的因子 [0.05..0.95] */
 static const int nmaster     = 1;    /* number of clients in master area */
 static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
 static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
@@ -90,8 +90,8 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
-	{ MODKEY|ShiftMask,             XK_j,      rotatestack,    {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_k,      rotatestack,    {.i = -1 } },
+	// { MODKEY|ShiftMask,             XK_j,      rotatestack,    {.i = +1 } },
+	// { MODKEY|ShiftMask,             XK_k,      rotatestack,    {.i = -1 } },
 	{ MODKEY,                       XK_j,      focusstackvis,  {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstackvis,  {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_j,      focusstackhid,  {.i = +1 } },
@@ -118,7 +118,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
 	{ MODKEY,                       XK_s,      show,           {0} },
 	{ MODKEY|ShiftMask,             XK_s,      showall,        {0} },
-	{ MODKEY,                       XK_h,      hide,           {0} },
+	// { MODKEY,                       XK_h,      hide,           {0} },
 	{ MODKEY,                       XK_minus,  setgaps,        {.i = -1 } },
 	{ MODKEY,                       XK_equal,  setgaps,        {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_equal,  setgaps,        {.i = 0 } },
