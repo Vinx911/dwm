@@ -649,8 +649,9 @@ void buttonpress(XEvent* e)
         } else {
             x += blw;
             c = m->clients;
-            
-            if (m->bt == 0) return;
+
+            if (m->bt == 0)
+                return;
 
             if (c) {
                 do {
@@ -797,8 +798,8 @@ void clientmessage(XEvent* e)
             XSelectInput(dpy, c->win, StructureNotifyMask | PropertyChangeMask | ResizeRedirectMask);
             XReparentWindow(dpy, c->win, systray->win, 0, 0);
 
-            XClassHint ch = {"dwmsystray", "dwmsystray"};
-			XSetClassHint(dpy, c->win, &ch);
+            XClassHint ch = { "dwmsystray", "dwmsystray" };
+            XSetClassHint(dpy, c->win, &ch);
 
             /* use parents background color */
             swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
@@ -1667,7 +1668,13 @@ void hidewin(Client* c)
  */
 void incnmaster(const Arg* arg)
 {
-    selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
+    int nmaster = selmon->nmaster + arg->i;
+    if (selmon->bt <= 1) {
+        nmaster = 1;
+    } else if (nmaster >= 3) {
+        nmaster = 1;
+    }
+    selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(nmaster, 1);
     arrange(selmon);
 }
 
@@ -2919,7 +2926,7 @@ void togglefloating(const Arg* arg)
     if (selmon->sel->isfloating) {
         // resize(selmon->sel, selmon->sel->x, selmon->sel->y, selmon->sel->w, selmon->sel->h, 0);
         resize(selmon->sel, selmon->wx + selmon->ww / 6, selmon->wy + selmon->wh / 6,
-			selmon->ww / 3 * 2, selmon->wh / 3 * 2, 0);
+            selmon->ww / 3 * 2, selmon->wh / 3 * 2, 0);
     }
     arrange(selmon);
 }
