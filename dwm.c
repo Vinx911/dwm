@@ -344,6 +344,7 @@ static void tile(Monitor* m);
 static void togglebar(const Arg* arg);
 static void togglefloating(const Arg* arg);
 static void togglescratch(const Arg* arg);
+static void togglesystray(const Arg* arg);
 static void toggletag(const Arg* arg);
 static void toggleview(const Arg* arg);
 static void togglewin(const Arg* arg);
@@ -793,6 +794,10 @@ void clientmessage(XEvent* e)
             XAddToSaveSet(dpy, c->win);
             XSelectInput(dpy, c->win, StructureNotifyMask | PropertyChangeMask | ResizeRedirectMask);
             XReparentWindow(dpy, c->win, systray->win, 0, 0);
+
+            XClassHint ch = {"dwmsystray", "dwmsystray"};
+			XSetClassHint(dpy, c->win, &ch);
+
             /* use parents background color */
             swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
             XChangeWindowAttributes(dpy, c->win, CWBackPixel, &swa);
@@ -2939,6 +2944,21 @@ void togglescratch(const Arg* arg)
     } else {
         spawn(arg);
     }
+}
+
+/**
+ * 切换系统托盘显示
+ */
+void togglesystray(const Arg* arg)
+{
+    if (showsystray) {
+        showsystray = 0;
+        XUnmapWindow(dpy, systray->win);
+    } else {
+        showsystray = 1;
+    }
+    updatesystray();
+    updatestatus();
 }
 
 /**
