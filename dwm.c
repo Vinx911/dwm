@@ -341,6 +341,7 @@ static Monitor* systraytomon(Monitor* m);
 static void tag(const Arg* arg);
 static void tagmon(const Arg* arg);
 static void tile(Monitor* m);
+static void toggleallfloating(const Arg* arg);
 static void togglebar(const Arg* arg);
 static void togglefloating(const Arg* arg);
 static void togglescratch(const Arg* arg);
@@ -2881,6 +2882,43 @@ void tile(Monitor* m)
             }
         }
     }
+}
+
+/**
+ * 切换全部浮动
+ */
+void toggleallfloating(const Arg* arg)
+{
+    Client* c = NULL;
+    int somefloating = 0;
+
+    if (!selmon->sel || selmon->sel->isfullscreen) {
+        return;
+    }
+
+    for (c = selmon->clients; c; c = c->next) {
+        if (ISVISIBLE(c) && !HIDDEN(c) && c->isfloating) {
+            somefloating = 1;
+            break;
+        }
+    }
+
+    if (somefloating) {
+        for (c = selmon->clients; c; c = c->next) {
+            if (ISVISIBLE(c) && !HIDDEN(c)) {
+                c->isfloating = 0;
+            }
+        }
+        arrange(selmon);
+    } else {
+        for (c = selmon->clients; c; c = c->next) {
+            if (ISVISIBLE(c) && !HIDDEN(c)) {
+                c->isfloating = 1;
+                resize(c, c->x + 2 * snap, c->y + 2 * snap, MAX(c->w - 4 * snap, snap), MAX(c->h - 4 * snap, snap), 0);
+            }
+        }
+    }
+    pointerfocuswin(selmon->sel);
 }
 
 /**
