@@ -4,6 +4,7 @@
 static const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
 static const unsigned int borderpx  				= 1;	/* 窗口的边框像素 */
 static const unsigned int gappx     				= 5;	/* 窗口间隔 */
+static const unsigned int overviewgappx          	= 5;	/* 预览窗口间隔 */
 static const unsigned int snap      				= 32;	/* 快照像素,用于鼠标移动 */
 static const int          showbar            		= 1;	/* 1: 显示bar */
 static const int          topbar             		= 1;	/* 1: 顶部显示bar, 0: 底部显示bar */
@@ -30,6 +31,7 @@ static const char *colors[][3]      = {
 	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
 	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
 	[SchemeHid]  = { col_cyan,  col_gray1, col_cyan  },
+	[SchemeUnderline] = { "#7799AA", "#7799AA", "#7799AA" },
 };
 static const unsigned int alphas[][3]      = {
 	/*               fg      bg        border     */
@@ -53,6 +55,9 @@ static const Rule rules[] = {
 	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
 };
 
+static const char *overviewtag = "OVERVIEW";
+static const Layout overviewlayout = { "",  overview };
+
 /* layout(s) */
 static const float mfact     = 0.55; /* 主区域大小的因子 [0.05..0.95] */
 static const int nmaster     = 1;    /* number of clients in master area */
@@ -64,7 +69,7 @@ static const Layout layouts[] = {
 	{ "[]=",      tile },    /* first entry is default */
 	{ "><>",      NULL },    /* no layout function means floating behavior */
 	{ "[M]",      monocle },
-	{ "###",      grid },
+	{ "###",      magicgrid },
 };
 
 /* key definitions */
@@ -151,6 +156,7 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_9,                      8)
 	TAGKEYS2(XK_c, 8,  "google-chrome-stable", "google-chrome-stable")
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY,              XK_a,            toggleoverview,   {0} },                     /* super a            |  显示所有tag 或 跳转到聚焦窗口的tag */
 };
 
 /* button definitions */
