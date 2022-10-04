@@ -2831,8 +2831,9 @@ void tag(const Arg* arg)
         focus(NULL);
         arrange(selmon);
         view(&(Arg) { .ui = arg->ui });
-    } else
+    } else {
         view(arg);
+    }
 }
 
 /**
@@ -3581,7 +3582,7 @@ void view(const Arg* arg)
 {
     int i;
     unsigned int tmptag;
-    Client *c;
+    Client* c;
     int n = 0;
 
     selmon->seltags ^= 1; /* toggle sel tagset */
