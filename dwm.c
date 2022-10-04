@@ -649,6 +649,8 @@ void buttonpress(XEvent* e)
         } else {
             x += blw;
             c = m->clients;
+            
+            if (m->bt == 0) return;
 
             if (c) {
                 do {
