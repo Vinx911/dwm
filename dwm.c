@@ -2826,14 +2826,22 @@ Monitor* systraytomon(Monitor* m)
  */
 void tag(const Arg* arg)
 {
+    // if (selmon->sel && arg->ui & TAGMASK) {
+    //     selmon->sel->tags = arg->ui & TAGMASK;
+    //     focus(NULL);
+    //     arrange(selmon);
+    //     if (viewontag && ((arg->ui & TAGMASK) != TAGMASK)) {
+    //         view(arg);
+    //     }
+    // }
+
     if (selmon->sel && arg->ui & TAGMASK) {
         selmon->sel->tags = arg->ui & TAGMASK;
         focus(NULL);
         arrange(selmon);
-        if (viewontag && ((arg->ui & TAGMASK) != TAGMASK)) {
-            view(arg);
-        }
-    }
+        view(&(Arg) { .ui = arg->ui });
+    } else
+        view(arg);
 }
 
 /**
@@ -3582,15 +3590,8 @@ void view(const Arg* arg)
 {
     int i;
     unsigned int tmptag;
-
-    if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) {
-        if (arg->v && selmon->bt == 0) {
-            Arg a = { .v = (const char*[]) { "/bin/sh", "-c", arg->v, NULL } };
-            spawn(&a);
-        }
-
-        return;
-    }
+    Client *c;
+    int n = 0;
 
     selmon->seltags ^= 1; /* toggle sel tagset */
     if (arg->ui & TAGMASK) {
@@ -3623,9 +3624,14 @@ void view(const Arg* arg)
     focus(NULL);
     arrange(selmon);
 
-    if (arg->v && selmon->bt == 0) {
-        Arg a = { .v = (const char*[]) { "/bin/sh", "-c", arg->v, NULL } };
-        spawn(&a);
+    // 若当前tag无窗口 且附加了v参数 则执行
+    if (arg->v) {
+        for (c = selmon->clients; c; c = c->next)
+            if (c->tags & arg->ui && !HIDDEN(c))
+                n++;
+        if (n == 0) {
+            spawn(&(Arg) { .v = (const char*[]) { "/bin/sh", "-c", arg->v, NULL } });
+        }
     }
 }
 

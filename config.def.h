@@ -12,7 +12,6 @@ static const unsigned int systraypinning 			= 2;   	/* 0：系统托盘跟随选
 static const unsigned int systrayspacing 			= 2;   	/* 系统托盘间距 */
 static const int          systraypinningfailfirst 	= 1;   	/* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，False：在最后一台显示器上显示系统托盘 */
 static       int          showsystray             	= 1;   	/* 是否显示系统托盘 */
-static const Bool         viewontag				 	= True; /* 选择视图跟随tag开关 */
 static const int          winiconsize             	= 16;   /* 窗口图标尺寸 */
 static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
 
@@ -149,6 +148,7 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
+	TAGKEYS2(XK_c, 8,  "google-chrome-stable", "google-chrome-stable")
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
 };
 
