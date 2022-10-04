@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
+static const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
 static const unsigned int borderpx  				= 1;	/* 窗口的边框像素 */
 static const unsigned int gappx     				= 5;	/* 窗口间隔 */
 static const unsigned int snap      				= 32;	/* 快照像素,用于鼠标移动 */
