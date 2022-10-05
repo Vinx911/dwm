@@ -1,36 +1,36 @@
-/* See LICENSE file for copyright and license details. */
 
-/* appearance */
+static       int          showsystray             	= 1;   	/* 是否显示系统托盘 */
 static const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
-static const unsigned int borderpx  				= 1;	/* 窗口的边框像素 */
+static const unsigned int borderpx  				= 1;	/* 窗口边框大小 */
 static const unsigned int gappx     				= 5;	/* 窗口间隔 */
 static const unsigned int overviewgappx          	= 5;	/* 预览窗口间隔 */
-static const unsigned int snap      				= 32;	/* 快照像素,用于鼠标移动 */
-static const int          showbar            		= 1;	/* 1: 显示bar */
-static const int          topbar             		= 1;	/* 1: 顶部显示bar, 0: 底部显示bar */
+static const unsigned int snap      				= 32;	/* 边缘依附宽度 */
+static const int          showbar            		= 1;	/* 是否显示状态栏 */
+static const int          topbar             		= 1;	/* 指定状态栏位置 0底部 1顶部 */
 static const int 		  userbarheight             = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
 static const unsigned int systrayiconsize 			= 20;   /* 系统托盘图标尺寸 */
-static const unsigned int systraypinning 			= 2;   	/* 0：系统托盘跟随选定的监视器，> 0：将系统托盘固定到监视器 X  */
+static const unsigned int systraypinning 			= 2;   	/* 托盘跟随的显示器 0代表不指定显示器 */
 static const unsigned int systrayspacing 			= 2;   	/* 系统托盘间距 */
 static const int          systraypinningfailfirst 	= 1;   	/* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，False：在最后一台显示器上显示系统托盘 */
-static       int          showsystray             	= 1;   	/* 是否显示系统托盘 */
 static const int          winiconsize             	= 16;   /* 窗口图标尺寸 */
 static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
+static const float        mfact                     = 0.55; /* 主工作区 大小比例 */
+static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
+static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
+static const int          lockfullscreen            = 1;    /* 1 will force focus on the fullscreen window */
 
+/* Lockfile */
+static const char         lockfile[]                = "/tmp/dwm.lock";
 
-static const char *fonts[]          = { "monospace:size=10" };
-static const char col_gray1[]       = "#222222";
-static const char col_gray2[]       = "#444444";
-static const char col_gray3[]       = "#bbbbbb";
-static const char col_gray4[]       = "#eeeeee";
-static const char col_cyan[]        = "#005577";
-static const unsigned int baralpha = 0xa0;
-static const unsigned int borderalpha = OPAQUE;
+static const unsigned int baralpha                  = 0xa0; /* 状态栏透明度 */
+static const unsigned int borderalpha               = OPAQUE;/* 边框透明度 */
+
+static const char *fonts[]          = { "JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13" };
 static const char *colors[][3]      = {
-	/*               fg         bg         border   */
-	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
-	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
-	[SchemeHid]  = { col_cyan,  col_gray1, col_cyan  },
+	/*                       fg         bg         border   */
+	[SchemeNorm]      = { "#bbbbbb", "#333333", "#444444" },
+	[SchemeSel]       = { "#ffffff", "#37474F", "#42A5F5" },
+	[SchemeHid]       = { "#dddddd", NULL,      NULL      },
 	[SchemeUnderline] = { "#7799AA", "#7799AA", "#7799AA" },
 };
 static const unsigned int alphas[][3]      = {
@@ -39,31 +39,22 @@ static const unsigned int alphas[][3]      = {
 	[SchemeSel]  = { OPAQUE, baralpha, borderalpha },
 };
 
-/* tagging */
-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-
-/* Lockfile */
-static char lockfile[] = "/tmp/dwm.lock";
+/* 自定义tag名称 */
+/* 自定义特定实例的显示状态 */
+//            ﮸ 
+static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "ﬄ", "﬐", "" };
 
 static const Rule rules[] = {
-	/* xprop(1):
-	 *	WM_CLASS(STRING) = instance, class
-	 *	WM_NAME(STRING) = title
-	 */
-	/* class      instance    title       tags mask     isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
+	/* class                instance    title       tags mask     isfloating   noborder  nooverview   monitor */
+    {"netease-cloud-music", NULL,       NULL,       1 << 10,      1,           0,        0,           -1 },
+	{ "Gimp",               NULL,       NULL,       0,            1,           0,        0,           -1 },
+	{ "Firefox",            NULL,       NULL,       1 << 8,       0,           0,        0,           -1 },
 };
 
 static const char *overviewtag = "OVERVIEW";
 static const Layout overviewlayout = { "",  overview };
 
-/* layout(s) */
-static const float mfact     = 0.55; /* 主区域大小的因子 [0.05..0.95] */
-static const int nmaster     = 1;    /* number of clients in master area */
-static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
-static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
-
+/* 自定义布局 */
 static const Layout layouts[] = {
 	/* symbol     arrange function */
 	{ "[]=",      tile },    /* first entry is default */
@@ -72,7 +63,7 @@ static const Layout layouts[] = {
 	{ "###",      magicgrid },
 };
 
-/* key definitions */
+#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define MODKEY Mod4Mask
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \

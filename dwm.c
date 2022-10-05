@@ -218,7 +218,7 @@ struct Monitor {
     int nmaster;
     int num;
     int by; /* bar geometry */
-    int btw; /* width of tasks portion of bar */
+    int task_bar_width; /* width of tasks portion of bar */
     int bt; /* number of tasks */
     int mx, my, mw, mh; /* 屏幕尺寸 */
     int wx, wy, ww, wh; /* 窗口区域的尺寸  */
@@ -246,6 +246,8 @@ typedef struct
     const char* title;
     unsigned int tags;
     int isfloating;
+    int noborder;
+    int nooverview;
     int monitor;
 } Rule;
 
@@ -393,8 +395,10 @@ static char stext[256]; /* 状态栏文本 */
 static int screen; /* 默认屏幕 */
 static int sw; /* 默认屏幕的宽 */
 static int sh; /* 默认屏幕的高 */
-static int bh; /* bar 高度 */
-static int blw;
+static int bar_height; /* bar 高度 */
+static int tag_bar_width; /* 标签栏宽度 */
+static int lt_symbol_width; /* 布局符号宽度 */
+static int statsu_bar_width; /* 状态栏宽度 */
 static int lrpad; /* 文本左右填充的总和 */
 static int (*xerrorxlib)(Display*, XErrorEvent*);
 static unsigned int numlockmask = 0; /* 数字键盘锁按键掩码 */
@@ -523,10 +527,10 @@ int applysizehints(Client* c, int* x, int* y, int* w, int* h, int interact)
         if (*y + *h + 2 * c->bw <= m->wy)
             *y = m->wy;
     }
-    if (*h < bh)
-        *h = bh;
-    if (*w < bh)
-        *w = bh;
+    if (*h < bar_height)
+        *h = bar_height;
+    if (*w < bar_height)
+        *w = bar_height;
     if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
         if (!c->hintsvalid)
             updatesizehints(c);
@@ -670,14 +674,14 @@ void buttonpress(XEvent* e)
         if (i < LENGTH(tags)) {
             click = ClkTagBar;
             arg.ui = 1 << i;
-        } else if (ev->x < x + TEXTW(selmon->ltsymbol)) {
+        } else if (ev->x < tag_bar_width + lt_symbol_width) {
             click = ClkLtSymbol;
         }
         /* 2px right padding */
         else if (ev->x > selmon->ww - TEXTW(stext) - getsystraywidth() + lrpad - 2) {
             click = ClkStatusText;
         } else {
-            x += blw;
+            x += lt_symbol_width;
             c = m->clients;
 
             if (m->bt == 0)
@@ -688,7 +692,7 @@ void buttonpress(XEvent* e)
                     if (!ISVISIBLE(c)) {
                         continue;
                     } else {
-                        x += (1.0 / (double)m->bt) * m->btw;
+                        x += (1.0 / (double)m->bt) * m->task_bar_width;
                     }
                 } while (ev->x > x && (c = c->next));
 
@@ -702,11 +706,11 @@ void buttonpress(XEvent* e)
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         click = ClkClientWin;
     }
-    for (i = 0; i < LENGTH(buttons); i++)
+    for (i = 0; i < LENGTH(buttons); i++) {
         if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state)) {
-            buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg
-                                                                                                  : &buttons[i].arg);
+            buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
         }
+    }
 }
 
 /**
@@ -896,7 +900,7 @@ void configurenotify(XEvent* e)
         sw = ev->width;
         sh = ev->height;
         if (updategeom() || dirty) {
-            drw_resize(drw, sw, bh);
+            drw_resize(drw, sw, bar_height);
             updatebars();
             for (m = mons; m; m = m->next) {
                 for (c = m->clients; c; c = c->next) {
@@ -904,7 +908,7 @@ void configurenotify(XEvent* e)
                         resizeclient(c, m->mx, m->my, m->mw, m->mh);
                     }
                 }
-                XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
+                XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bar_height);
             }
             focus(NULL);
             arrange(NULL);
@@ -1091,12 +1095,12 @@ void drawbar(Monitor* m)
     if (showsystray && m == systraytomon(m)) {
         stw = getsystraywidth();
         drw_setscheme(drw, scheme[SchemeNorm]);
-        drw_rect(drw, m->ww - stw, 0, stw, bh, 1, 1);
+        drw_rect(drw, m->ww - stw, 0, stw, bar_height, 1, 1);
     }
 
     drw_setscheme(drw, scheme[SchemeNorm]);
     tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-    drw_text(drw, m->ww - tw - stw, 0, tw, bh, 0, stext, 0);
+    drw_text(drw, m->ww - tw - stw, 0, tw, bar_height, 0, stext, 0);
 
     for (c = m->clients; c; c = c->next) {
         if (ISVISIBLE(c)) {
@@ -1113,9 +1117,9 @@ void drawbar(Monitor* m)
     if (m->isoverview) {
         w = TEXTW(overviewtag);
         drw_setscheme(drw, scheme[SchemeSel]);
-        drw_text(drw, x, 0, w, bh, lrpad / 2, overviewtag, 0);
+        drw_text(drw, x, 0, w, bar_height, lrpad / 2, overviewtag, 0);
         drw_setscheme(drw, scheme[SchemeUnderline]);
-        drw_rect(drw, x, bh - boxw, w + lrpad, boxw, 1, 0);
+        drw_rect(drw, x, bar_height - boxw, w + lrpad, boxw, 1, 0);
         x += w;
     } else {
         for (i = 0; i < LENGTH(tags); i++) {
@@ -1126,20 +1130,22 @@ void drawbar(Monitor* m)
 
             w = TEXTW(tags[i]);
             drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
-            drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+            drw_text(drw, x, 0, w, bar_height, lrpad / 2, tags[i], urg & 1 << i);
             if (m->tagset[m->seltags] & 1 << i) {
                 drw_setscheme(drw, scheme[SchemeUnderline]);
-                drw_rect(drw, x, bh - boxw, w + lrpad, boxw, 1, 0);
+                drw_rect(drw, x, bar_height - boxw, w + lrpad, boxw, 1, 0);
             }
             x += w;
         }
     }
 
     w = TEXTW(m->ltsymbol);
+    tag_bar_width = x;
+    lt_symbol_width = w;
     drw_setscheme(drw, scheme[SchemeNorm]);
-    x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+    x = drw_text(drw, x, 0, w, bar_height, lrpad / 2, m->ltsymbol, 0);
 
-    if ((w = m->ww - tw - stw - x) > bh) {
+    if ((w = m->ww - tw - stw - x) > bar_height) {
         if (n > 0) {
             int remainder = w % n;
             int tabw = (1.0 / (double)n) * w + 1;
@@ -1163,21 +1169,21 @@ void drawbar(Monitor* m)
                     remainder--;
                 }
 
-                drw_text(drw, x, 0, tabw, bh, lrpad / 2 + (c->icon ? c->icw + winiconspacing : 0), c->name, 0);
+                drw_text(drw, x, 0, tabw, bar_height, lrpad / 2 + (c->icon ? c->icw + winiconspacing : 0), c->name, 0);
                 if (c->icon) {
-                    drw_pic(drw, x + lrpad / 2, (bh - c->ich) / 2, c->icw, c->ich, c->icon);
+                    drw_pic(drw, x + lrpad / 2, (bar_height - c->ich) / 2, c->icw, c->ich, c->icon);
                 }
 
                 x += tabw;
             }
         } else {
             drw_setscheme(drw, scheme[SchemeNorm]);
-            drw_rect(drw, x, 0, w, bh, 1, 1);
+            drw_rect(drw, x, 0, w, bar_height, 1, 1);
         }
     }
     m->bt = n;
-    m->btw = w;
-    drw_map(drw, m->barwin, 0, 0, m->ww, bh);
+    m->task_bar_width = w;
+    drw_map(drw, m->barwin, 0, 0, m->ww, bar_height);
 }
 
 /**
@@ -2740,7 +2746,7 @@ void setup(void)
     }
 
     lrpad = drw->fonts->h;
-    bh = drw->fonts->h + userbarheight;
+    bar_height = drw->fonts->h + userbarheight;
     updategeom();
 
     /* init atoms */
@@ -3054,11 +3060,11 @@ void togglebar(const Arg* arg)
 {
     selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
     updatebarpos(selmon);
-    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
+    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bar_height);
     if (showsystray) {
         XWindowChanges wc;
         if (!selmon->showbar) {
-            wc.y = -bh;
+            wc.y = -bar_height;
         } else if (selmon->showbar) {
 #if BARPADDING_PATCH
             wc.y = vp;
@@ -3067,7 +3073,7 @@ void togglebar(const Arg* arg)
 #else
             wc.y = 0;
             if (!selmon->topbar)
-                wc.y = selmon->mh - bh;
+                wc.y = selmon->mh - bar_height;
 #endif // BARPADDING_PATCH
         }
         XConfigureWindow(dpy, systray->win, CWY, &wc);
@@ -3210,6 +3216,10 @@ void togglewin(const Arg* arg)
 {
     Client* c = (Client*)arg->v;
 
+    if (c == NULL) {
+        return;
+    }
+
     if (c == selmon->sel) {
         hidewin(c);
         focus(NULL);
@@ -3319,7 +3329,7 @@ void updatebars(void)
         if (m->barwin) {
             continue;
         }
-        m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, depth, InputOutput, visual,
+        m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bar_height, 0, depth, InputOutput, visual,
             CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
         XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
         if (showsystray && m == systraytomon(m)) {
@@ -3338,11 +3348,11 @@ void updatebarpos(Monitor* m)
     m->wy = m->my;
     m->wh = m->mh;
     if (m->showbar) {
-        m->wh -= bh;
+        m->wh -= bar_height;
         m->by = m->topbar ? m->wy : m->wy + m->wh; // 这里实际上是屏幕尺寸的y坐标
-        m->wy = m->topbar ? m->wy + bh : m->wy; // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
+        m->wy = m->topbar ? m->wy + bar_height : m->wy; // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
     } else
-        m->by = -bh; // 不显示, 负值在屏幕外
+        m->by = -bar_height; // 不显示, 负值在屏幕外
 }
 
 /**
@@ -3572,7 +3582,7 @@ void updatesystray(int updatebar)
         wa.background_pixel = 0;
         wa.border_pixel = 0;
         wa.colormap = cmap;
-        systray->win = XCreateWindow(dpy, root, x - xpad, m->by + ypad, w, bh, 0, depth, InputOutput, visual,
+        systray->win = XCreateWindow(dpy, root, x - xpad, m->by + ypad, w, bar_height, 0, depth, InputOutput, visual,
             CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
         XSelectInput(dpy, systray->win, SubstructureNotifyMask);
         XChangeProperty(dpy, systray->win, netatom[NetSystemTrayOrientation], XA_CARDINAL, 32, PropModeReplace,
@@ -3597,22 +3607,23 @@ void updatesystray(int updatebar)
 
     for (w = 0, i = systray->icons; i; i = i->next) {
         wa.background_pixel = 0;
+        ;
         XChangeWindowAttributes(dpy, i->win, CWBackPixel, &wa);
         XMapRaised(dpy, i->win);
         w += systrayspacing;
         i->x = w;
-        XMoveResizeWindow(dpy, i->win, i->x, (bh - i->h) / 2, i->w, i->h);
+        XMoveResizeWindow(dpy, i->win, i->x, (bar_height - i->h) / 2, i->w, i->h);
         w += i->w;
         if (i->mon != m)
             i->mon = m;
     }
     w = w ? w + systrayspacing : 1;
     x -= w;
-    XMoveResizeWindow(dpy, systray->win, x - xpad, m->by + ypad, w, bh);
+    XMoveResizeWindow(dpy, systray->win, x - xpad, m->by + ypad, w, bar_height);
     wc.x = x - xpad;
     wc.y = m->by + ypad;
     wc.width = w;
-    wc.height = bh;
+    wc.height = bar_height;
     wc.stack_mode = Above;
     wc.sibling = m->barwin;
     XConfigureWindow(dpy, systray->win, CWX | CWY | CWWidth | CWHeight | CWSibling | CWStackMode, &wc);
