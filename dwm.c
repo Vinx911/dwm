@@ -1083,7 +1083,7 @@ Monitor* dirtomon(int dir)
  */
 void drawbar(Monitor* m)
 {
-    int x, w, stw = 0, n = 0, scm;
+    int x, w, system_tray_width = 0, n = 0, scm;
     unsigned int i, occ = 0, urg = 0;
     Client* c;
     int boxw = 2;
@@ -1093,14 +1093,14 @@ void drawbar(Monitor* m)
     }
 
     if (showsystray && m == systraytomon(m)) {
-        stw = getsystraywidth();
+        system_tray_width = getsystraywidth();
         drw_setscheme(drw, scheme[SchemeNorm]);
-        drw_rect(drw, m->ww - stw, 0, stw, bar_height, 1, 1);
+        drw_rect(drw, m->ww - system_tray_width, 0, system_tray_width, bar_height, 1, 1);
     }
 
     drw_setscheme(drw, scheme[SchemeNorm]);
     statsu_bar_width = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-    drw_text(drw, m->ww - tw - stw, 0, tw, bar_height, 0, stext, 0);
+    drw_text(drw, m->ww - statsu_bar_width - system_tray_width, 0, statsu_bar_width, bar_height, 0, stext, 0);
 
     for (c = m->clients; c; c = c->next) {
         if (ISVISIBLE(c)) {
@@ -1145,7 +1145,7 @@ void drawbar(Monitor* m)
     drw_setscheme(drw, scheme[SchemeNorm]);
     x = drw_text(drw, x, 0, w, bar_height, lrpad / 2, m->ltsymbol, 0);
 
-    if ((w = m->ww - tw - stw - x) > bar_height) {
+    if ((w = m->ww - statsu_bar_width - system_tray_width - x) > bar_height) {
         if (n > 0) {
             int remainder = w % n;
             int tabw = (1.0 / (double)n) * w + 1;
