@@ -18,6 +18,7 @@ static const float        mfact                     = 0.55; /* 主工作区 大�
 static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
 static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
 static const int          lockfullscreen            = 1;    /* 强制焦点在全屏窗口上 */
+static const char         scratchpadname[]          = { "scratchpad" };
 
 /* Lockfile */
 static const char         lockfile[]                = "/tmp/dwm.lock";
@@ -40,16 +41,32 @@ static const unsigned int alphas[][3]      = {
 };
 
 /* 自定义tag名称 */
-/* 自定义特定实例的显示状态 */
-//            ﮸ 
-static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "ﬄ", "﬐", "" };
-// static const char *tags[] = { "", "", "", "", "", "", "", "﬏", "", "" };
+/* 自定义特定实例的显示状态 */\
+static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "﬐", "" };\
 
 static const Rule rules[] = {
-	/* class                instance    title       tags mask     isfloating   noborder  nooverview   monitor */
-    {"netease-cloud-music", NULL,       NULL,       1 << 10,      1,           0,        0,           -1 },
-	{ "Gimp",               NULL,       NULL,       0,            1,           0,        0,           -1 },
-	{ "Firefox",            NULL,       NULL,       1 << 8,       0,           0,        0,           -1 },
+	/* class                 instance              title             tags mask     isfloating   noborder  nooverview   monitor */
+    {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,           -1 },
+	{ "Gimp",                NULL,                 NULL,             0,            1,           0,        0,           -1 },
+	{ "Firefox",             NULL,                 NULL,             1 << 8,       0,           0,        0,           -1 },
+
+
+    // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
+    // {"music",                NULL,                 NULL,             1 << 10,      1,           1,        0,       -1 },
+    // {"lx-music-desktop",     NULL,                 NULL,             1 << 10,      1,           1,        0,       -1 },
+    // { NULL,                 "tim.exe",             NULL,             1 << 11,      0,           0,        0,       -1 },
+    // { NULL,                 "icalingua",           NULL,             1 << 11,      0,           1,        0,       -1 },
+    // { NULL,                 "wechat.exe",          NULL,             1 << 12,      0,           0,        0,       -1 },
+    // { NULL,                 "wxwork.exe",          NULL,             1 << 13,      0,           0,        0,       -1 },
+    // { NULL,                  NULL,                "broken",          0,            1,           0,        0,       -1 },
+    // { NULL,                  NULL,                "图片查看",         0,            1,           0,        0,       -1 },
+    // { NULL,                  NULL,                "图片预览",         0,            1,           0,        0,       -1 },
+    // { NULL,                  NULL,                "crx_",            0,            1,           0,        0,       -1 },
+    // {"chrome",               NULL,                 NULL,             1 << 9,       0,           0,        0,       -1 },
+    // {"Chromium",             NULL,                 NULL,             1 << 9,       0,           0,        0,       -1 },
+    // {"flameshot",            NULL,                 NULL,             0,            1,           0,        0,       -1 },
+    // {"float",                NULL,                 NULL,             0,            1,           0,        0,       -1 },
+    // {"noborder",             NULL,                 NULL,             0,            1,           1,        0,       -1 },
 };
 
 static const char *overviewtag = "OVERVIEW";
@@ -77,76 +94,88 @@ static const Layout layouts[] = {
 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
-#define TAGKEYS1B(KEY,TAG, cmd1) \
-	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG, .v = cmd1} }, \
-	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd1} }, \
-	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
-
 #define TAGKEYS2(KEY,TAG, cmd1, cmd2) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG, .v = cmd1} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd2} }, \
 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
-
 /* commands */
-static const char *roficmd[] = { "rofi", "-show", "drun", "-show-icons", NULL };
-static const char *termcmd[]  = { "alacritty", NULL };
-static const char scratchpadname[]  = { "scratchpad" };
-static const char *scratchpadcmd[]  = { "alacritty", "-t", scratchpadname };
-
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_p,      spawn,          {.v = roficmd } },
-	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
-	// { MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
-	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
-	{ MODKEY,                       XK_b,      togglebar,      {0} },
-	// { MODKEY|ShiftMask,             XK_j,      rotatestack,    {.i = +1 } },
-	// { MODKEY|ShiftMask,             XK_k,      rotatestack,    {.i = -1 } },
-	{ MODKEY,                       XK_j,      focusstackvis,  {.i = +1 } },
-	{ MODKEY,                       XK_k,      focusstackvis,  {.i = -1 } },
-	{ MODKEY|ShiftMask,             XK_j,      focusstackhid,  {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_k,      focusstackhid,  {.i = -1 } },
-	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
-	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
-	{ MODKEY,                       XK_Return, zoom,           {0} },
-	{ MODKEY,                       XK_Tab,    view,           {0} },
-	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
-	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
-	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
-	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
-	{ MODKEY,                       XK_g,      setlayout,      {.v = &layouts[3]} },
-	{ MODKEY|ShiftMask,             XK_f,      fullscreen,     {0} },
-	{ MODKEY,                       XK_space,  setlayout,      {0} },
-	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
-	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
-	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
-	{ MODKEY,                       XK_comma,  focusmon,       {.i = -1 } },
-	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
-	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
-	{ MODKEY,                       XK_s,      show,           {0} },
-	{ MODKEY|ShiftMask,             XK_s,      showall,        {0} },
-	// { MODKEY,                       XK_h,      hide,           {0} },
-	{ MODKEY,                       XK_minus,  setgaps,        {.i = -1 } },
-	{ MODKEY,                       XK_equal,  setgaps,        {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_equal,  setgaps,        {.i = 0 } },
-	TAGKEYS(                        XK_1,                      0)
-	TAGKEYS(                        XK_2,                      1)
-	TAGKEYS(                        XK_3,                      2)
-	TAGKEYS(                        XK_4,                      3)
-	TAGKEYS(                        XK_5,                      4)
-	TAGKEYS(                        XK_6,                      5)
-	TAGKEYS(                        XK_7,                      6)
-	TAGKEYS(                        XK_8,                      7)
-	TAGKEYS(                        XK_9,                      8)
-	TAGKEYS2(XK_c, 8,  "google-chrome-stable", "google-chrome-stable")
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
-	{ MODKEY,              XK_a,            toggleoverview,   {0} },                     /* super a            |  显示所有tag 或 跳转到聚焦窗口的tag */
+    { MODKEY|ControlMask,           XK_q,      quit,           {0} },                               /* super ctrl q              |  退出dwm */
+	{ MODKEY,                       XK_q,      killclient,     {0} },                               /* super q                   |  关闭窗口 */
+
+         
+	{ MODKEY|ControlMask,           XK_t,      setlayout,      {.v = &layouts[0]} },                /* super ctrl t              |  切换到平铺布局 */
+	{ MODKEY|ControlMask,           XK_g,      setlayout,      {.v = &layouts[1]} },                /* super ctrl g              |  切换到网格布局 */
+	{ MODKEY|ControlMask,           XK_m,      setlayout,      {.v = &layouts[2]} },                /* super ctrl m              |  切换到单窗口布局 */
+	{ MODKEY|ControlMask,           XK_w,      setlayout,      {.v = &layouts[3]} },                /* super ctrl f              |  切换到浮动布局 */
+	{ MODKEY|ControlMask,           XK_space,  setlayout,      {0} },                               /* super ctrl space          |  切换上一个布局 */
+         
+	{ MODKEY|ControlMask,           XK_minus,  setgaps,        {.i = -1 } },                        /* super ctrl -              |  窗口间距减小 */
+	{ MODKEY|ControlMask,           XK_equal,  setgaps,        {.i = +1 } },                        /* super ctrl =              |  窗口间距增大 */
+	{ MODKEY|ControlMask|ShiftMask, XK_minus,  setgaps,        {.i = 0 } },                         /* super ctrl shift -        |  窗口间距重置 */
+	{ MODKEY|ControlMask|ShiftMask, XK_equal,  setgaps,        {.i = 0 } },                         /* super ctrl shift =        |  窗口间距重置 */
+
+	{ MODKEY,                       XK_comma,  setmfact,       {.f = -0.05} },                      /* super ,                   |  缩小主工作区 */
+    { MODKEY,                       XK_period, setmfact,       {.f = +0.05} },                      /* super .                   |  放大主工作区 */
+
+	{ MODKEY,                       XK_r,      rotatestack,    {.i = +1 } },                        /* super r                   |  旋转窗口栈 */
+	{ MODKEY|ShiftMask,             XK_r,      rotatestack,    {.i = -1 } },                        /* super shift r             |  反向旋转窗口栈 */
+	{ MODKEY,                       XK_j,      focusstackvis,  {.i = +1 } },                        /* super ctrl -              |  切换显示窗口焦点 */
+	{ MODKEY,                       XK_k,      focusstackvis,  {.i = -1 } },                        /* super ctrl -              |  反向切换显示窗口焦点 */
+	{ MODKEY|ShiftMask,             XK_j,      focusstackhid,  {.i = +1 } },                        /* super ctrl -              |  切换隐藏窗口焦点 */
+	{ MODKEY|ShiftMask,             XK_k,      focusstackhid,  {.i = -1 } },                        /* super ctrl -              |  反向切换隐藏窗口焦点 */
+
+	{ MODKEY|ControlMask,           XK_comma,  focusmon,       {.i = -1 } },                        /* super ctrl ,              |  光标移动到上一个显示器 */
+	{ MODKEY|ControlMask,           XK_period, focusmon,       {.i = +1 } },                        /* super ctrl .              |  光标移动到下一个显示器 */
+	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },                        /* super shift .             |  将聚焦窗口移动到上一个显示器 */
+	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },                        /* super shift .             |  将聚焦窗口移动到下一个显示器 */
+
+	{ MODKEY,                       XK_h,      hide,           {0} },                               /* super h                   |  隐藏窗口 */
+	{ MODKEY|ShiftMask,             XK_h,      show,           {0} },                               /* super shift h             |  显示窗口 */
+	{ MODKEY|ControlMask|ShiftMask, XK_h,      showall,        {0} },                               /* super ctrl shift h        |  显示全部窗口 */
+
+	{ MODKEY|ControlMask,           XK_z,      zoom,           {0} },                               /* super ctrl enter          |  将当前聚焦窗口置为主窗口 */
+
+    { MODKEY,                       XK_grave,  togglesystray,  {0} },                               /* super ctrl ~              |  切换 托盘栏显示状态 */
+	{ MODKEY|ControlMask,           XK_o,      toggleoverview, {0} },                               /* super ctrl o              |  显示所有tag 或 跳转到聚焦窗口的tag */
+	{ MODKEY|ControlMask,           XK_w,      togglefloating, {0} },                               /* super ctrl f              |  开启/关闭 聚焦目标的float模式 */
+    { MODKEY|ControlMask|ShiftMask, XK_w,      toggleallfloating,{0} },                             /* super ctrl shift f        |  开启/关闭 全部目标的float模式 */
+	{ MODKEY|ControlMask,           XK_v,      togglebar,      {0} },                               /* super ctrl b              |  开启/关闭 状态栏 */
+	{ MODKEY|ControlMask,           XK_m,      fullscreen,     {0} },                               /* super ctrl b              |  开启/关闭 全屏 */
+
+	{ MODKEY|ControlMask,           XK_n,      incnmaster,     {.i = +1 } },                        /* super ctrl e              |  改变主工作区窗口数量 (1 2中切换) */
+
+	{ MODKEY,                       XK_Tab,    view,           {0} },                               /* super tab                 |  显示上一个标签*/
+	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },                       /* super tab                 |  显示全部标签*/
+	{ MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },                       /* super tab                 |  移动到全部标签*/
+
+	/* spawn + SHCMD 执行对应命令 */
+    { MODKEY,              XK_Return,       spawn,            SHCMD("~/.dwm/scripts/app-starter.sh terminal") },
+    { MODKEY|ShiftMask,    XK_Return,       togglescratch,    SHCMD("~/.dwm/scripts/app-starter.sh scratchpad") },
+    { MODKEY,              XK_s,            spawn,            SHCMD("~/.dwm/scripts/app-starter.sh rofi") },
+
+    /* super key : 跳转到对应tag */
+    /* super shift key : 将聚焦窗口移动到对应tag */
+    /* 若跳转后的tag无窗口且附加了cmd1或者cmd2就执行对应的cmd */
+    /* key tag cmd1 cmd2 */
+	TAGKEYS(XK_1,  0)
+	TAGKEYS(XK_2,  1)
+	TAGKEYS(XK_3,  2)
+	TAGKEYS(XK_4,  3)
+	TAGKEYS(XK_5,  4)
+	TAGKEYS(XK_6,  5)
+	TAGKEYS(XK_7,  6)
+	TAGKEYS(XK_8,  7)
+	TAGKEYS(XK_9,  8)
+    TAGKEYS2(XK_a, 9,  "~/.dwm/scripts/app-starter.sh filemanager",  "~/.dwm/scripts/app-starter.sh filemanager")
+    TAGKEYS2(XK_b, 10, "~/.dwm/scripts/app-starter.sh chrome",   "~/.dwm/scripts/app-starter.sh chrome")
+    TAGKEYS2(XK_c, 11, "~/.dwm/scripts/app-starter.sh music",     "~/.dwm/scripts/app-starter.sh music")
+    TAGKEYS2(XK_d, 12, "~/.dwm/scripts/app-starter.sh video",  "~/.dwm/scripts/app-starter.sh video")
+    TAGKEYS2(XK_e, 13, "~/.dwm/scripts/app-starter.sh wechat",  "~/.dwm/scripts/app-starter.sh wechat")
+    TAGKEYS(XK_f,  14)
 };
 
 /* button definitions */
@@ -158,7 +187,6 @@ static const Button buttons[] = {
 	{ ClkLtSymbol,          ControlMask,    Button1,        togglemonocle,    {0} },
 	{ ClkWinTitle,          0,              Button1,        togglewin,        {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,             {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,            {.v = termcmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,        {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating,   {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,      {0} },

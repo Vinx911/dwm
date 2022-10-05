@@ -314,6 +314,7 @@ static void monocle(Monitor* m);
 static void motionnotify(XEvent* e);
 static void movemouse(const Arg* arg);
 static Client* nexttiled(Client* c);
+static void pointerfocuswin(Client* c);
 static void pop(Client* c);
 static void propertynotify(XEvent* e);
 static void quit(const Arg* arg);
@@ -862,6 +863,21 @@ void clientmessage(XEvent* e)
         if (c != selmon->sel && !c->isurgent) {
             seturgent(c, 1);
         }
+
+        if (c == selmon->sel) {
+            return;
+        }
+        // 若不是当前显示器 则跳转到对应显示器
+        if (c->mon != selmon) {
+            focusmon(&(Arg) { .i = +1 });
+        }
+        // 若不适当前tag 则跳转到对应tag
+        if (!ISVISIBLE(c)) {
+            view(&(Arg) { .ui = c->tags });
+        }
+        // 选中窗口
+        focus(c);
+        pointerfocuswin(c);
     }
 }
 
@@ -1335,6 +1351,7 @@ void focusmon(const Arg* arg)
     unfocus(selmon->sel, 0);
     selmon = m;
     focus(NULL);
+    pointerfocuswin(NULL);
 }
 
 /**
@@ -1397,6 +1414,7 @@ void focusstack(int inc, int hid)
             showwin(c);
             c->mon->hidsel = 1;
         }
+        pointerfocuswin(c);
     }
 }
 
@@ -2097,6 +2115,16 @@ Client* nexttiled(Client* c)
     for (; c && (c->isfloating || !ISVISIBLE(c) || HIDDEN(c)); c = c->next)
         ;
     return c;
+}
+
+void pointerfocuswin(Client* c)
+{
+    if (c) {
+        XWarpPointer(dpy, None, root, 0, 0, 0, 0, c->x + c->w / 2, c->y + c->h / 2);
+        focus(c);
+    } else {
+        XWarpPointer(dpy, None, root, 0, 0, 0, 0, selmon->wx + selmon->ww / 3, selmon->wy + selmon->wh / 2);
+    }
 }
 
 /**
@@ -2980,6 +3008,8 @@ void tagmon(const Arg* arg)
         return;
 
     sendmon(selmon->sel, dirtomon(arg->i));
+    focusmon(&(Arg) { .i = +1 });
+    pointerfocuswin(selmon->sel);
 }
 
 /**
@@ -3101,6 +3131,7 @@ void togglefloating(const Arg* arg)
             selmon->ww / 3 * 2, selmon->wh / 3 * 2, 0);
     }
     arrange(selmon);
+    pointerfocuswin(selmon->sel);
 }
 
 /**
@@ -3123,6 +3154,7 @@ void toggleoverview(const Arg* arg)
     uint target = selmon->sel ? selmon->sel->tags : selmon->seltags;
     selmon->isoverview ^= 1;
     view(&(Arg) { .ui = target });
+    pointerfocuswin(selmon->sel);
 }
 
 /**
