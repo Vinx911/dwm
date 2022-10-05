@@ -352,6 +352,7 @@ static void tile(Monitor* m);
 static void toggleallfloating(const Arg* arg);
 static void togglebar(const Arg* arg);
 static void togglefloating(const Arg* arg);
+static void togglemonocle(const Arg* arg);
 static void toggleoverview(const Arg* arg);
 static void togglescratch(const Arg* arg);
 static void togglesystray(const Arg* arg);
@@ -402,6 +403,7 @@ static int statsu_bar_width; /* 状态栏宽度 */
 static int lrpad; /* 文本左右填充的总和 */
 static int (*xerrorxlib)(Display*, XErrorEvent*);
 static unsigned int numlockmask = 0; /* 数字键盘锁按键掩码 */
+static unsigned int monocleshowcount = 0; /* monocle显示窗口个数 */
 static void (*handler[LASTEvent])(XEvent*) = { // 事件数组
     [ButtonPress] = buttonpress,
     [ClientMessage] = clientmessage,
@@ -1974,7 +1976,7 @@ void maprequest(XEvent* e)
 }
 
 /**
- * 单片镜布局
+ * 单窗口布局
  */
 void monocle(Monitor* m)
 {
@@ -1988,7 +1990,7 @@ void monocle(Monitor* m)
             n++;
         }
     }
-    if (n > 0) { /* override layout symbol */
+    if (monocleshowcount && n > 0) { /* override layout symbol */
         snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
     }
     for (c = nexttiled(m->clients); c; c = nexttiled(c->next)) {
@@ -3099,6 +3101,18 @@ void togglefloating(const Arg* arg)
             selmon->ww / 3 * 2, selmon->wh / 3 * 2, 0);
     }
     arrange(selmon);
+}
+
+/**
+ * 切换monocle显示窗口个数
+ */
+void togglemonocle(const Arg* arg)
+{
+    if (selmon->lt[selmon->sellt] == &layouts[2]) {
+        monocleshowcount ^= 1;
+        arrange(selmon);
+        drawbar(selmon);
+    }
 }
 
 /**
