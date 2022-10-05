@@ -11,13 +11,13 @@ static const int 		  userbarheight             = 8;    /* bar的额外高度, �
 static const unsigned int systrayiconsize 			= 20;   /* 系统托盘图标尺寸 */
 static const unsigned int systraypinning 			= 2;   	/* 托盘跟随的显示器 0代表不指定显示器 */
 static const unsigned int systrayspacing 			= 2;   	/* 系统托盘间距 */
-static const int          systraypinningfailfirst 	= 1;   	/* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，False：在最后一台显示器上显示系统托盘 */
+static const int          systraypinningfailfirst 	= 1;   	/* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
 static const int          winiconsize             	= 16;   /* 窗口图标尺寸 */
 static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
 static const float        mfact                     = 0.55; /* 主工作区 大小比例 */
 static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
 static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
-static const int          lockfullscreen            = 1;    /* 1 will force focus on the fullscreen window */
+static const int          lockfullscreen            = 1;    /* 强制焦点在全屏窗口上 */
 
 /* Lockfile */
 static const char         lockfile[]                = "/tmp/dwm.lock";
@@ -43,6 +43,7 @@ static const unsigned int alphas[][3]      = {
 /* 自定义特定实例的显示状态 */
 //            ﮸ 
 static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "ﬄ", "﬐", "" };
+// static const char *tags[] = { "", "", "", "", "", "", "", "﬏", "", "" };
 
 static const Rule rules[] = {
 	/* class                instance    title       tags mask     isfloating   noborder  nooverview   monitor */
@@ -56,15 +57,14 @@ static const Layout overviewlayout = { "",  overview };
 
 /* 自定义布局 */
 static const Layout layouts[] = {
-	/* symbol     arrange function */
-	{ "[]=",      tile },    /* first entry is default */
-	{ "><>",      NULL },    /* no layout function means floating behavior */
-	{ "[M]",      monocle },
-	{ "###",      magicgrid },
+	{ "﬿", tile },      /* 平铺*/
+	{ "", NULL },      /* 浮动 */
+	{ "", monocle },   /* 单窗口 */
+	{ "﩯", magicgrid }, /* 网格 */
 };
 
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define MODKEY Mod4Mask
+#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 #define TAGKEYS(KEY,TAG) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -80,7 +80,7 @@ static const Layout layouts[] = {
 #define TAGKEYS1B(KEY,TAG, cmd1) \
 	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG, .v = cmd1} }, \
 	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd2} }, \
+	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd1} }, \
 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
 #define TAGKEYS2(KEY,TAG, cmd1, cmd2) \
@@ -89,19 +89,18 @@ static const Layout layouts[] = {
 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd2} }, \
 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
-/* helper for spawning shell commands in the pre dwm-5.0 fashion */
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
 static const char *roficmd[] = { "rofi", "-show", "drun", "-show-icons", NULL };
 static const char *termcmd[]  = { "alacritty", NULL };
 static const char scratchpadname[]  = { "scratchpad" };
-static const char *scratchpadcmd[]  = { "alacritty", "-t", scratchpadname, "--config-file", "/home/vinx/.config/alacritty/alacritty-scratchpad.yml" };
+static const char *scratchpadcmd[]  = { "alacritty", "-t", scratchpadname };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
 	{ MODKEY,                       XK_p,      spawn,          {.v = roficmd } },
 	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	// { MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
 	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	// { MODKEY|ShiftMask,             XK_j,      rotatestack,    {.i = +1 } },
