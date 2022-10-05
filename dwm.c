@@ -1083,7 +1083,7 @@ Monitor* dirtomon(int dir)
  */
 void drawbar(Monitor* m)
 {
-    int x, w, tw = 0, stw = 0, n = 0, scm;
+    int x, w, stw = 0, n = 0, scm;
     unsigned int i, occ = 0, urg = 0;
     Client* c;
     int boxw = 2;
@@ -1099,7 +1099,7 @@ void drawbar(Monitor* m)
     }
 
     drw_setscheme(drw, scheme[SchemeNorm]);
-    tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+    statsu_bar_width = TEXTW(stext) - lrpad + 2; /* 2px right padding */
     drw_text(drw, m->ww - tw - stw, 0, tw, bar_height, 0, stext, 0);
 
     for (c = m->clients; c; c = c->next) {
