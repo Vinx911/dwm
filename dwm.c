@@ -483,6 +483,7 @@ void applyrules(Client* c)
         r = &rules[i];
         if ((!r->title || strstr(c->name, r->title)) && (!r->class || strstr(class, r->class)) && (!r->instance || strstr(instance, r->instance))) {
             c->isfloating = r->isfloating;
+            c->nooverview = r->nooverview;
             c->tags |= r->tags;
             for (m = mons; m && m->num != r->monitor; m = m->next)
                 ;
@@ -3017,11 +3018,13 @@ void tagmon(const Arg* arg)
  */
 void tile(Monitor* m)
 {
-    unsigned int i, n, h, mw, my, ty;
+    int i, n, h, mw, my, ty;
     Client* c;
 
+    // 计算窗口个数
     for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++)
         ;
+
     if (n == 0) {
         return;
     }
@@ -3031,6 +3034,7 @@ void tile(Monitor* m)
     } else {
         mw = m->ww - m->gappx;
     }
+
     for (i = 0, my = ty = m->gappx, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++) {
         if (i < m->nmaster) {
             h = (m->wh - my) / (MIN(n, m->nmaster) - i) - m->gappx;
@@ -3039,9 +3043,16 @@ void tile(Monitor* m)
                 my += HEIGHT(c) + m->gappx;
             }
         } else {
-            h = (m->wh - ty) / (n - i) - m->gappx;
-            resize(c, m->wx + mw + m->gappx, m->wy + ty, m->ww - mw - (2 * c->bw) - 2 * m->gappx, h - (2 * c->bw), 0);
-            if (ty + HEIGHT(c) < m->wh) {
+            int rx = m->wx + mw + m->gappx;
+            int ry = m->wy + ty;
+            int rw = m->ww - mw - (2 * c->bw) - 2 * m->gappx;
+            int rh = (m->wh - ty) / (n - i) - m->gappx - (2 * c->bw);
+            if (rh < minclientheight) {
+                rh = minclientheight;
+            }
+
+            resize(c, rx, ry, rw, rh, 0);
+            if (ty + HEIGHT(c) + m->gappx + minclientheight < m->wh) {
                 ty += HEIGHT(c) + m->gappx;
             }
         }
