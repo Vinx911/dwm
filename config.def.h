@@ -18,7 +18,7 @@ static const int          winiconspacing            = 5;    /* 窗口图标与�
 static const float        mfact                     = 0.55; /* 主工作区 大小比例 */
 static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
 static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
-static const int          lockfullscreen            = 1;    /* 强制焦点在全屏窗口上 */
+static const int          lockfullscreen            = 0;    /* 强制焦点在全屏窗口上 */
 static const char         scratchpadname[]          = { "scratchpad" };
 
 /* Lockfile */
@@ -46,11 +46,11 @@ static const unsigned int alphas[][3]      = {
 static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "﬐", "" };\
 
 static const Rule rules[] = {
-    /* class                 instance              title             tags mask     isfloating   noborder  nooverview   monitor */
-    { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           -1 },
-    { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           -1 },
-    { "Google-chrome",       NULL,                 NULL,             1 << 10,      0,           0,        0,           -1 },
-    { "Clash for Windows",   NULL,                 NULL,             1 << 14,      1,           0,        1,           -1 },
+    /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor */
+    { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1 },
+    { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           0,               -1 },
+    { "Google-chrome",       NULL,                 NULL,             1 << 10,      0,           0,        0,           1,               -1 },
+    { "Clash for Windows",   NULL,                 NULL,             1 << 14,      1,           0,        1,           0,               -1 },
 
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
@@ -147,6 +147,7 @@ static const Key keys[] = {
     { MODKEY|ControlMask,           XK_w,      toggleallfloating,{0} },                             /* super ctrl w              |  开启/关闭 全部目标的float模式 */
     { MODKEY|ShiftMask,             XK_v,      togglebar,      {0} },                               /* super shift v             |  开启/关闭 状态栏 */
     { MODKEY|ControlMask,           XK_m,      fullscreen,     {0} },                               /* super ctrl m              |  开启/关闭 全屏 */
+    { MODKEY,           XK_m,      togglefakefullscreen,     {0} },                               /* super ctrl m              |  开启/关闭 全屏 */
 
     { MODKEY|ShiftMask,             XK_n,      incnmaster,     {.i = +1 } },                        /* super shift n             |  改变主工作区窗口数量 (1 2中切换) */
 
