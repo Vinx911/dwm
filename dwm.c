@@ -115,10 +115,16 @@ enum
 }; /* cursor */
 enum
 {
-    SchemeNorm,
-    SchemeSel,
-    SchemeHid,
-    SchemeUnderline
+    SchemeNorm,       // 普通
+    SchemeSel,        // 选中的
+    SchemeSelGlobal,  // 全局并选中的
+    SchemeHid,        // 隐藏的
+    SchemeSystray,    // 托盘
+    SchemeNormTag,    // 普通标签
+    SchemeSelTag,     // 选中的标签
+    SchemeUnderline,  // 下划线
+    SchemeBarEmpty,   // 状态栏空白部分
+    SchemeStatusText  // 状态栏文本
 }; /* color schemes */
 enum
 {
@@ -260,6 +266,7 @@ typedef struct
     int nooverview;
     int isfakefullscreen;
     int monitor;
+    uint floatposition;
 } Rule;
 
 typedef struct Systray Systray;
@@ -280,6 +287,7 @@ static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
 static void cleanupmon(Monitor *mon);
+static void clickstatusbar(const Arg *arg);
 static void clientmessage(XEvent *e);
 static void configure(Client *c);
 static void configurenotify(XEvent *e);
@@ -291,6 +299,7 @@ static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
+static int drawstatusbar(Monitor *m, int bh, char* text);
 static void enqueue(Client *c);
 static void enqueuestack(Client *c);
 static void enternotify(XEvent *e);
@@ -406,7 +415,7 @@ static const char autostartsh[] = "autostart.sh";
 static const char broken[] = "broken";           /* 无法获取到窗口标题时显示文本 */
 static const char dwmdir[] = "dwm";              /* dwm目录 */
 static const char localshare[] = ".local/share"; /* .local/share */
-static char stext[256];                          /* 状态栏文本 */
+static char stext[1024];                          /* 状态栏文本 */
 static int screen;                               /* 默认屏幕 */
 static int sw;                                   /* 默认屏幕的宽 */
 static int sh;                                   /* 默认屏幕的高 */
@@ -415,6 +424,8 @@ static int tag_bar_width;                        /* 标签栏宽度 */
 static int lt_symbol_width;                      /* 布局符号宽度 */
 static int statsu_bar_width;                     /* 状态栏宽度 */
 static int lrpad;                                /* 文本左右填充的总和 */
+static int vp;               /* vertical padding for bar */
+static int sp;               /* side padding for bar */
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static unsigned int numlockmask = 0;            /* 数字键盘锁按键掩码 */
 static unsigned int monocleshowcount = 0;       /* monocle显示窗口个数 */
@@ -508,6 +519,22 @@ void applyrules(Client *c)
             {
                 c->mon = m;
             }
+            // 如果设定了floatposition 且未指定xy，设定窗口位置
+            if (r->isfloating && c->x == 0 && c->y == 0) {
+                switch (r->floatposition) {
+                    case 1: c->x = selmon->wx + gappx; c->y = selmon->wy + gappx; break; // 左上
+                    case 2: c->x = selmon->wx + (selmon->ww - WIDTH(c)) / 2 - gappx; c->y = selmon->wy + gappx; break; // 中上
+                    case 3: c->x = selmon->wx + selmon->ww - WIDTH(c) - gappx; c->y = selmon->wy + gappx; break; // 右上
+                    case 4: c->x = selmon->wx + gappx; c->y = selmon->wy + (selmon->wh - HEIGHT(c)) / 2; break; // 左中
+                    case 0: // 默认0，居中
+                    case 5: c->x = selmon->wx + (selmon->ww - WIDTH(c)) / 2; c->y = selmon->wy + (selmon->wh - HEIGHT(c)) / 2; break; // 中中
+                    case 6: c->x = selmon->wx + selmon->ww - WIDTH(c) - gappx; c->y = selmon->wy + (selmon->wh - HEIGHT(c)) / 2; break; // 右中
+                    case 7: c->x = selmon->wx + gappx; c->y = selmon->wy + selmon->wh - HEIGHT(c) - gappx; break; // 左下
+                    case 8: c->x = selmon->wx + (selmon->ww - WIDTH(c)) / 2; c->y = selmon->wy + selmon->wh - HEIGHT(c) - gappx; break; // 中下
+                    case 9: c->x = selmon->wx + selmon->ww - WIDTH(c) - gappx; c->y = selmon->wy + selmon->wh - HEIGHT(c) - gappx; break; // 右下
+                }
+            }
+            break; // 有且只会匹配一个第一个符合的rule
         }
     }
     if (ch.res_class)
@@ -697,6 +724,8 @@ void buttonpress(XEvent *e)
         selmon = m;
         focus(NULL);
     }
+    int status_w = drawstatusbar(selmon, bar_height, stext);
+    int system_w = getsystraywidth();
     if (ev->window == selmon->barwin)
     {
         i = x = 0;
@@ -735,9 +764,11 @@ void buttonpress(XEvent *e)
             click = ClkLtSymbol;
         }
         /* 2px right padding */
-        else if (ev->x > selmon->ww - TEXTW(stext) - getsystraywidth() + lrpad - 2)
+        else if (ev->x > selmon->ww - status_w - 2 * sp - (selmon == systraytomon(selmon) ? (system_w ? system_w + systraypinning + 2 : 0) : 0))
         {
             click = ClkStatusText;
+            arg.i = ev->x - (selmon->ww - status_w - 2 * sp - (selmon == systraytomon(selmon) ? (system_w ? system_w + systraypinning + 2 : 0) : 0));
+            arg.ui = ev->button; // 1 => L，2 => M，3 => R, 5 => U, 6 => D
         }
         else
         {
@@ -777,7 +808,7 @@ void buttonpress(XEvent *e)
     {
         if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button && CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
         {
-            buttons[i].func((click == ClkTagBar || click == ClkWinTitle) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+            buttons[i].func((click == ClkTagBar || click == ClkWinTitle || click == ClkStatusText) && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
         }
     }
 }
@@ -838,7 +869,7 @@ void cleanup(void)
     {
         drw_cur_free(drw, cursor[i]);
     }
-    for (i = 0; i < LENGTH(colors); i++)
+    for (i = 0; i < LENGTH(colors) + 1; i++)
     {
         free(scheme[i]);
     }
@@ -1020,7 +1051,7 @@ void configurenotify(XEvent *e)
                         resizeclient(c, m->mx, m->my, m->mw, m->mh);
                     }
                 }
-                XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bar_height);
+                XMoveResizeWindow(dpy, m->barwin, m->wx + sp, m->by + vp, m->ww -  2 * sp, bar_height);
             }
             focus(NULL);
             arrange(NULL);
@@ -1217,6 +1248,338 @@ Monitor *dirtomon(int dir)
     return m;
 }
 
+int
+drawstatusbar2(Monitor *m, int bh, char* stext) {
+    int status_w = 0, i, w, x, len, system_w = 0;
+    short isCode = 0;
+    char *text;
+    char *p;
+    char buf8[8], buf5[5];
+    uint textsalpha;
+
+    if(showsystray && m == systraytomon(m))
+        system_w = getsystraywidth();
+
+    len = strlen(stext) + 1 ;
+    if (!(text = (char*) malloc(sizeof(char)*len)))
+        die("malloc");
+    p = text;
+    memcpy(text, stext, len);
+
+    /* compute width of the status text */
+    w = 0;
+    i = -1;
+    while (text[++i]) {
+        if (text[i] == '^') {
+            if (!isCode) {
+                isCode = 1;
+                text[i] = '\0';
+                w += TEXTW(text) - lrpad;
+                text[i] = '^';
+            } else {
+                isCode = 0;
+                text = text + i + 1;
+                i = -1;
+            }
+        }
+    }
+    if (!isCode)
+        w += TEXTW(text) - lrpad;
+    else
+        isCode = 0;
+    text = p;
+
+    // w += 2; /* 1px padding on both sides */
+    x = m->ww - w - system_w - 2 * sp - (system_w ? systrayspadding : 0); // 托盘存在时 额外多-一个systrayspadding
+
+    drw_setscheme(drw, scheme[LENGTH(colors)]);
+    drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+    drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+    drw_rect(drw, x, 0, w, bh, 1, 1);
+    x++;
+
+    /* process status text */
+    i = -1;
+    while (text[++i]) {
+        if (text[i] == '^' && !isCode) {
+            isCode = 1;
+
+            text[i] = '\0';
+            w = TEXTW(text) - lrpad;
+            drw_text(drw, x, 0, w, bh, 0, text, 0);
+            status_w += w;
+
+            x += w;
+
+            /* process code */
+            while (text[++i] != '^') {
+                if (text[i] == 'c') {
+                    memcpy(buf8, (char*)text+i+1, 7);
+                    buf8[7] = '\0';
+                    i += 7;
+
+                    textsalpha = alphas[SchemeStatusText][ColFg];
+                    if (text[i + 1] != '^') {
+                        memcpy(buf5, (char*)text+i+1, 4);
+                        buf5[4] = '\0';
+                        i += 4;
+                        sscanf(buf5, "%x", &textsalpha);
+                    }
+
+                    drw_clr_create(drw, &drw->scheme[ColFg], buf8, textsalpha);
+                } else if (text[i] == 'b') {
+                    memcpy(buf8, (char*)text+i+1, 7);
+                    buf8[7] = '\0';
+                    i += 7;
+
+                    textsalpha = alphas[SchemeStatusText][ColBg];
+                    if (text[i + 1] != '^') {
+                        memcpy(buf5, (char*)text+i+1, 4);
+                        buf5[4] = '\0';
+                        i += 4;
+                        sscanf(buf5, "%x", &textsalpha);
+                    }
+                    drw_clr_create(drw, &drw->scheme[ColBg], buf8, textsalpha);
+                } else if (text[i] == 's') {
+                    while (text[i + 1] != '^') i++;
+                } else if (text[i] == 'd') {
+                    drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+                    drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+                }
+            }
+
+            text = text + i + 1;
+            i=-1;
+            isCode = 0;
+        }
+    }
+
+    if (!isCode) {
+        w = TEXTW(text) - lrpad;
+        drw_text(drw, x, 0, w, bh, 0, text, 0);
+        status_w += w;
+    }
+
+    drw_setscheme(drw, scheme[SchemeNorm]);
+    free(p);
+
+    return status_w - 2;
+}
+
+int
+drawstatusbar(Monitor *m, int bh, char* stext) {
+	int status_w = 0, i, w, x, len, system_w = 0;
+	short isCode = 0;
+	char *text;
+	char *p;
+    char buf8[8], buf5[5];
+    uint textsalpha;	
+
+	if(showsystray && m == systraytomon(m))
+        system_w = getsystraywidth();			
+
+	len = strlen(stext) + 1 ;
+	if (!(text = (char*) malloc(sizeof(char)*len)))
+		die("malloc");
+	p = text;
+	memcpy(text, stext, len);
+
+	/* compute width of the status text */
+	w = 0;
+	i = -1;
+	while (text[++i]) {
+		if (text[i] == '^') {
+			if (!isCode) {
+				isCode = 1;
+				text[i] = '\0';
+				w += TEXTW(text) - lrpad;
+				text[i] = '^';
+				if (text[++i] == 'f')
+					w += atoi(text + ++i);
+			} else {
+				isCode = 0;
+				text = text + i + 1;
+				i = -1;
+			}
+		}
+	}
+	if (!isCode)
+		w += TEXTW(text) - lrpad;
+	else
+		isCode = 0;
+	text = p;
+
+	x = m->ww - w - system_w - 2 * sp - (system_w ? systrayspadding : 0); // 托盘存在时 额外多-一个systrayspadding
+
+	drw_setscheme(drw, scheme[LENGTH(colors)]);
+	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+	drw_rect(drw, x, 0, w, bh, 1, 1);
+	x++;
+
+	/* process status text */
+	i = -1;
+	while (text[++i]) {
+		if (text[i] == '^' && !isCode) {
+			isCode = 1;
+
+			text[i] = '\0';
+			w = TEXTW(text) - lrpad;
+			drw_text(drw, x, 0, w, bh, 0, text, 0);
+			status_w += w;
+
+			x += w;
+
+			/* process code */
+			while (text[++i] != '^') {
+				if (text[i] == 'c') {
+					memcpy(buf8, (char*)text+i+1, 7);
+					buf8[7] = '\0';
+					i += 7;
+
+																 
+					textsalpha = alphas[SchemeStatusText][ColFg];
+                    if (text[i + 1] != '^') {
+                        memcpy(buf5, (char*)text+i+1, 4);
+                        buf5[4] = '\0';
+                        i += 4;
+                        sscanf(buf5, "%x", &textsalpha);
+                    }
+					drw_clr_create(drw, &drw->scheme[ColFg], buf8,textsalpha);						 
+														   
+				} else if (text[i] == 'b') {
+					memcpy(buf8, (char*)text+i+1, 7);
+					buf8[7] = '\0';
+					i += 7;
+
+					textsalpha = alphas[SchemeStatusText][ColBg];
+                    if (text[i + 1] != '^') {
+                        memcpy(buf5, (char*)text+i+1, 4);
+                        buf5[4] = '\0';
+                        i += 4;
+                        sscanf(buf5, "%x", &textsalpha);
+                    }
+                    drw_clr_create(drw, &drw->scheme[ColBg], buf8, textsalpha);											 
+				} else if (text[i] == 's') {
+                    while (text[i + 1] != '^') i++;								   
+				} else if (text[i] == 'd') {
+					drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+					drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+				} else if (text[i] == 'r') {
+					int rx = atoi(text + ++i);
+					while (text[++i] != ',');
+					int ry = atoi(text + ++i);
+					while (text[++i] != ',');
+					int rw = atoi(text + ++i);
+					while (text[++i] != ',');
+					int rh = atoi(text + ++i);
+
+					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
+				} else if (text[i] == 'f') {
+					x += atoi(text + ++i);
+				}
+			}
+
+			text = text + i + 1;
+			i=-1;
+			isCode = 0;
+		}
+	}
+
+	if (!isCode) {
+		w = TEXTW(text) - lrpad;
+		drw_text(drw, x, 0, w, bh, 0, text, 0);
+		status_w += w;	  
+	}
+
+	drw_setscheme(drw, scheme[SchemeNorm]);
+	free(p);
+
+	return status_w - 2;
+}
+
+// 点击状态栏时执行的func
+// 传入参数为 i  => 鼠标点击的位置相对于左边界的距离
+// 传入参数为 ui => 鼠标按键, 1 => 左键, 2 => 中键, 3 => 右键, 4 => 滚轮向上, 5 => 滚轮向下
+long lastclickstatusbartime = 0; // 用于避免过于频繁的点击和滚轮行为
+void
+clickstatusbar(const Arg *arg)
+{
+    if (!arg->i && arg->i < 0)
+        return;
+
+    // 用于避免过于频繁的点击和滚轮行为
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    long now = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    if (now - lastclickstatusbartime < 100)
+        return;
+    lastclickstatusbartime = now;
+
+    int offset = -1;
+    int status_w = 0;
+    int iscode = 0, issignal = 0, signalindex = 0;
+    char signal [20];
+    char text [100];
+    char *button = "L";
+    int limit, max = sizeof(stext);
+
+    while (stext[++offset] != '\0') {
+        // 左侧^
+        if (stext[offset] == '^' && !iscode) {
+            iscode = 1;
+            offset++;
+            if (stext[offset] == 's') { // 查询到s->signal
+                issignal = 1;
+                signalindex = 0;
+                memset(signal, '\0', sizeof(signal));
+            } else {
+                issignal = 0;
+            }
+            continue;
+        }
+
+        // 右侧^
+        if (stext[offset] == '^' && iscode) {
+            iscode = 0;
+            issignal = 0;
+            continue;
+        }
+
+        if (issignal) { // 逐位读取signal
+            signal[signalindex++] = stext[offset];
+        }
+
+        // 是普通文本
+        if (!iscode) {
+            // 查找到下一个^ 或 游标到达最后
+            limit = 0;
+            while (stext[offset + ++limit] != '^' && offset + limit < max);
+            if (offset + limit == max)
+                break;
+
+            memset(text, '\0', sizeof(text));
+            strncpy(text, stext + offset, limit);
+            offset += --limit;
+            status_w += TEXTW(text) - lrpad;
+            if (status_w > arg->i)
+                break;
+        }
+    }
+
+    switch (arg->ui) {
+        case Button1: button = "L"; break;
+        case Button2: button = "M"; break;
+        case Button3: button = "R"; break;
+        case Button4: button = "U"; break;
+        case Button5: button = "D"; break;
+    }
+
+    memset(text, '\0', sizeof(text));
+    sprintf(text, "%s %s %s &", statusbarscript, signal, button);
+    system(text);
+}
+
 /**
  * 绘制Bar
  */
@@ -1239,9 +1602,10 @@ void drawbar(Monitor *m)
         drw_rect(drw, m->ww - system_tray_width, 0, system_tray_width, bar_height, 1, 1);
     }
 
-    drw_setscheme(drw, scheme[SchemeNorm]);
-    statsu_bar_width = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-    drw_text(drw, m->ww - statsu_bar_width - system_tray_width, 0, statsu_bar_width, bar_height, 0, stext, 0);
+    // drw_setscheme(drw, scheme[SchemeNorm]);
+    // statsu_bar_width = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+    // drw_text(drw, m->ww - statsu_bar_width - system_tray_width - 2 * sp, 0, statsu_bar_width, bar_height, 0, stext, 0);
+    statsu_bar_width = drawstatusbar(m, bar_height, stext);
 
     for (c = m->clients; c; c = c->next)
     {
@@ -1295,7 +1659,7 @@ void drawbar(Monitor *m)
     drw_setscheme(drw, scheme[SchemeNorm]);
     x = drw_text(drw, x, 0, w, bar_height, lrpad / 2, m->ltsymbol, 0);
 
-    if ((w = m->ww - statsu_bar_width - system_tray_width - x) > bar_height)
+    if ((w = m->ww - statsu_bar_width - system_tray_width - x - 2 * sp) > bar_height)
     {
         if (n > 0)
         {
@@ -3158,6 +3522,8 @@ void setup(void)
     lrpad = drw->fonts->h;
     bar_height = drw->fonts->h + userbarheight;
     updategeom();
+    sp = sidepad;
+    vp = (topbar == 1) ? vertpad : - vertpad;
 
     /* init atoms */
     utf8string = XInternAtom(dpy, "UTF8_STRING", False);
@@ -3193,7 +3559,8 @@ void setup(void)
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 
     /* init appearance */
-    scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+    scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
+    scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], alphas[0],  3);
     for (i = 0; i < LENGTH(colors); i++)
     {
         scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
@@ -3208,6 +3575,7 @@ void setup(void)
     /* init bars */
     updatebars();
     updatestatus();
+    updatebarpos(selmon);
 
     /* supporting window for NetWMCheck */
     wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
@@ -3524,7 +3892,7 @@ void togglebar(const Arg *arg)
 {
     selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
     updatebarpos(selmon);
-    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bar_height);
+    XMoveResizeWindow(dpy, selmon->barwin, selmon->wx + sp, selmon->by + vp, selmon->ww - 2 * sp, bar_height);
     if (showsystray)
     {
         XWindowChanges wc;
@@ -3842,7 +4210,7 @@ void updatebars(void)
         {
             continue;
         }
-        m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bar_height, 0, depth, InputOutput, visual,
+        m->barwin = XCreateWindow(dpy, root, m->wx + sp, m->by + vp, m->ww - 2 * sp, bar_height, 0, depth, InputOutput, visual,
                                   CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
         XDefineCursor(dpy, m->barwin, cursor[CurNormal]->cursor);
         if (showsystray && m == systraytomon(m))
@@ -3863,12 +4231,12 @@ void updatebarpos(Monitor *m)
     m->wh = m->mh;
     if (m->showbar)
     {
-        m->wh -= bar_height;
-        m->by = m->topbar ? m->wy : m->wy + m->wh;      // 这里实际上是屏幕尺寸的y坐标
-        m->wy = m->topbar ? m->wy + bar_height : m->wy; // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
+        m->wh = m->wh - vertpad - bar_height;
+        m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;      // 这里实际上是屏幕尺寸的y坐标
+        m->wy = m->topbar ? m->wy + bar_height + vp : m->wy; // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
     }
     else
-        m->by = -bar_height; // 不显示, 负值在屏幕外
+        m->by = -bar_height - vp; // 不显示, 负值在屏幕外
 }
 
 /**
@@ -4113,10 +4481,8 @@ void updatesystray(int updatebar)
     Monitor *m = systraytomon(NULL);
     unsigned int x = m->mx + m->mw;
     unsigned int w = 1, xpad = 0, ypad = 0;
-#if BARPADDING_PATCH
     xpad = sp;
     ypad = vp;
-#endif // BARPADDING_PATCH
 
     if (!showsystray)
     {

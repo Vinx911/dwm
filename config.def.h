@@ -8,10 +8,13 @@ static const unsigned int overviewgappx             = 5;    /* 预览窗口间�
 static const unsigned int snap                      = 32;   /* 边缘依附宽度 */
 static const int          showbar                   = 1;    /* 是否显示状态栏 */
 static const int          topbar                    = 1;    /* 指定状态栏位置 0底部 1顶部 */
+static const int          vertpad                   = 10;       /* vertical padding of bar */
+static const int          sidepad                   = 10;       /* horizontal padding of bar */
 static const int           userbarheight            = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
 static const unsigned int systrayiconsize           = 20;   /* 系统托盘图标尺寸 */
 static const unsigned int systraypinning            = 2;    /* 托盘跟随的显示器 0代表不指定显示器 */
 static const unsigned int systrayspacing            = 2;    /* 系统托盘间距 */
+static const unsigned int systrayspadding = 5;        /* 托盘和状态栏的间隙 */
 static const int          systraypinningfailfirst   = 1;    /* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
 static const int          winiconsize               = 16;   /* 窗口图标尺寸 */
 static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
@@ -19,6 +22,14 @@ static const float        mfact                     = 0.55; /* 主工作区 大�
 static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
 static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
 static const int          lockfullscreen            = 0;    /* 强制焦点在全屏窗口上 */
+
+
+
+/* 自定义脚本位置 */
+static const char *autostartscript = "$DWM/autostart.sh";
+static const char *statusbarscript = "$DWM/statusbar/statusbar.sh";
+
+/* 自定义 scratchpad instance */
 static const char         scratchpadname[]          = { "scratchpad" };
 
 /* Lockfile */
@@ -30,15 +41,25 @@ static const unsigned int borderalpha               = OPAQUE;/* 边框透明度 
 static const char *fonts[]          = { "JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13" };
 static const char *colors[][3]      = {
     /*                       fg         bg         border   */
-    [SchemeNorm]      = { "#bbbbbb", "#333333", "#444444" },
-    [SchemeSel]       = { "#ffffff", "#37474F", "#42A5F5" },
-    [SchemeHid]       = { "#dddddd", NULL,      NULL      },
-    [SchemeUnderline] = { "#7799AA", "#7799AA", "#7799AA" },
+    [SchemeNorm] = { "#bbbbbb", "#333333", "#444444" },
+    [SchemeSel] = { "#ffffff", "#37474F", "#42A5F5" },
+    [SchemeSelGlobal] = { "#ffffff", "#37474F", "#FFC0CB" },
+    [SchemeHid] = { "#dddddd", NULL, NULL },
+    [SchemeSystray] = { NULL, "#7799AA", NULL },
+    [SchemeUnderline] = { "#7799AA", NULL, NULL }, 
+    [SchemeNormTag] = { "#bbbbbb", "#333333", NULL },
+    [SchemeSelTag] = { "#eeeeee", "#333333", NULL },
+    [SchemeBarEmpty] = { NULL, "#111111", NULL },
 };
 static const unsigned int alphas[][3]      = {
     /*               fg      bg        border     */
     [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
     [SchemeSel]  = { OPAQUE, baralpha, borderalpha },
+    [SchemeSelGlobal] = { OPAQUE, baralpha, borderalpha },
+    [SchemeNormTag] = { OPAQUE, baralpha, borderalpha }, 
+    [SchemeSelTag] = { OPAQUE, baralpha, borderalpha },
+    [SchemeBarEmpty] = { NULL, 0xa0a, NULL },
+    [SchemeStatusText] = { OPAQUE, 0x88, NULL },
 };
 
 /* 自定义tag名称 */
@@ -46,11 +67,11 @@ static const unsigned int alphas[][3]      = {
 static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "﬐", "" };\
 
 static const Rule rules[] = {
-    /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor */
-    { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1 },
-    { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           0,               -1 },
-    { "Google-chrome",       NULL,                 NULL,             1 << 10,      0,           0,        0,           1,               -1 },
-    { "Clash for Windows",   NULL,                 NULL,             1 << 14,      1,           0,        1,           0,               -1 },
+    /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor floatposition */
+    { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1, 0},
+    { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           0,               -1, 0 },
+    { "Google-chrome",       NULL,                 NULL,             1 << 10,      0,           0,        0,           1,               -1, 0 },
+    { "Clash for Windows",   NULL,                 NULL,             1 << 14,      1,           0,        1,           0,               -1, 0 },
 
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
@@ -69,6 +90,19 @@ static const Rule rules[] = {
     // {"flameshot",            NULL,                 NULL,             0,            1,           0,        0,       -1 },
     // {"float",                NULL,                 NULL,             0,            1,           0,        0,       -1 },
     // {"noborder",             NULL,                 NULL,             0,            1,           1,        0,       -1 },
+
+       /** 部分特殊class的规则 */
+    {"float",                NULL,                 NULL,             0,            1,           0,   0,     0,         -1,      0}, // class = float       浮动
+    {"global",               NULL,                 NULL,             TAGMASK,      0,           0,   1,      0,        -1,      0}, // class = gloabl      全局
+    {"noborder",             NULL,                 NULL,             0,            0,           1,   0,      0,        -1,      0}, // class = noborder    无边框
+    {"FGN",                  NULL,                 NULL,             TAGMASK,      1,           1,   1,      0,        -1,      0}, // class = FGN         浮动、全局、无边框
+    {"FG",                   NULL,                 NULL,             TAGMASK,      1,           0,   1,      0,        -1,      0}, // class = FG          浮动、全局
+    {"FN",                   NULL,                 NULL,             0,            1,           1,   0,      0,        -1,      0}, // class = FN          浮动、无边框
+    {"GN",                   NULL,                 NULL,             TAGMASK,      0,           1,   1,      0,        -1,      0}, // CLASS = GN          全局、无边框
+
+    // /** 优先度低 越在上面优先度越低 */
+    // { NULL,                  NULL,                "crx_",            0,            1,          0,          0,        -1,      0}, // 错误载入时 会有crx_ 浮动
+    // { NULL,                  NULL,                "broken",          0,            1,          0,          0,        -1,      0}, // 错误载入时 会有broken 浮动
 };
 
 static const char *overviewtag = "OVERVIEW";
@@ -147,7 +181,6 @@ static const Key keys[] = {
     { MODKEY|ControlMask,           XK_w,      toggleallfloating,{0} },                             /* super ctrl w              |  开启/关闭 全部目标的float模式 */
     { MODKEY|ShiftMask,             XK_v,      togglebar,      {0} },                               /* super shift v             |  开启/关闭 状态栏 */
     { MODKEY|ControlMask,           XK_m,      fullscreen,     {0} },                               /* super ctrl m              |  开启/关闭 全屏 */
-    { MODKEY,           XK_m,      togglefakefullscreen,     {0} },                               /* super ctrl m              |  开启/关闭 全屏 */
 
     { MODKEY|ShiftMask,             XK_n,      incnmaster,     {.i = +1 } },                        /* super shift n             |  改变主工作区窗口数量 (1 2中切换) */
 
@@ -199,5 +232,13 @@ static const Button buttons[] = {
     { ClkTagBar,            0,              Button3,        toggleview,       {0} },
     { ClkTagBar,            MODKEY,         Button1,        tag,              {0} },
     { ClkTagBar,            MODKEY,         Button3,        toggletag,        {0} },
+
+    /* 点击状态栏操作 */
+    { ClkStatusText,       0,               Button1,          clickstatusbar,{0} },                                   // 左键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal L
+    { ClkStatusText,       0,               Button2,          clickstatusbar,{0} },                                   // 中键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal M
+    { ClkStatusText,       0,               Button3,          clickstatusbar,{0} },                                   // 右键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal R
+    { ClkStatusText,       0,               Button4,          clickstatusbar,{0} },                                   // 鼠标滚轮上  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal U
+    { ClkStatusText,       0,               Button5,          clickstatusbar,{0} },                                   // 鼠标滚轮下  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal D
+                                                                                                                      //
 };
 
