@@ -1,40 +1,6 @@
 /* See LICENSE file for copyright and license details. */
-typedef struct {
-    Cursor cursor;
-} Cur;
 
-typedef struct Fnt {
-    Display* dpy; //所属的显示器
-    unsigned int h; //字体高度（字号大小）
-    XftFont* xfont; //指向X库中的xftFont结构体，是字体实现的核心
-    FcPattern* pattern; //模式
-    struct Fnt* next; //指向下一个字体
-} Fnt;
-
-enum {
-    ColFg,
-    ColBg,
-    ColBorder,
-}; /* Clr scheme index */
-typedef XftColor Clr;
-
-/**
- * 可绘制视窗的管理结构体
- */
-typedef struct {
-    unsigned int w, h; //宽，高
-    Display* dpy; //所属显示器
-    int screen; //屏幕号
-    Window root; //根视窗
-    Visual* visual; // visual
-    unsigned int depth; // 颜色位深
-    Colormap cmap; // 颜色映射
-    Drawable drawable;
-    Picture picture; // 窗口图标
-    GC gc; // 图形上下文,存储前景色、背景色、线条样式等
-    Clr* scheme; //配色
-    Fnt* fonts; //字体
-} Drw;
+#include "typedef.h"
 
 /* Drawable abstraction */
 Drw* drw_create(Display* dpy, int screen, Window win, unsigned int w, unsigned int h, Visual* visual, unsigned int depth, Colormap cmap);

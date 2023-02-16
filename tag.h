@@ -1,0 +1,33 @@
+#ifndef TAG_H
+#define TAG_H
+
+/**
+ * 显示tag
+ */
+void view(const Arg *arg);
+
+
+/**
+ * 切换tag显示状态
+ */
+void toggleview(const Arg *arg);
+
+/**
+ * 切换当前客户端所属tag, 可以添加一个新的tag
+ */
+void toggletag(const Arg *arg);
+
+
+
+/**
+ * 显示所有tag 或 跳转到聚焦窗口的tag
+ */
+void toggleoverview(const Arg *arg);
+
+
+/**
+ * 切换当前客户端tag
+ */
+void tag(const Arg *arg);
+
+#endif  // TAG_H

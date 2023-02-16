@@ -1,45 +1,47 @@
 
-static       int          show_systray               = 1;    /* 是否显示系统托盘 */
-static const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
-static const int          minclientheight           = 100;  /* 最小窗口高度 */
-static const unsigned int borderpx                  = 1;    /* 窗口边框大小 */
-static const unsigned int gappx                     = 5;    /* 窗口间隔 */
-static const unsigned int overviewgappx             = 5;    /* 预览窗口间隔 */
-static const unsigned int snap                      = 32;   /* 边缘依附宽度 */
-static const int          showbar                   = 1;    /* 是否显示状态栏 */
-static const int          topbar                    = 1;    /* 指定状态栏位置 0底部 1顶部 */
-static const int          vertpad                   = 10;       /* vertical padding of bar */
-static const int          sidepad                   = 10;       /* horizontal padding of bar */
-static const int           userbarheight            = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
-static const unsigned int systrayiconsize           = 20;   /* 系统托盘图标尺寸 */
-static const unsigned int systraypinning            = 2;    /* 托盘跟随的显示器 0代表不指定显示器 */
-static const unsigned int systrayspacing            = 2;    /* 系统托盘间距 */
-static const unsigned int systrayspadding = 5;        /* 托盘和状态栏的间隙 */
-static const int          systraypinningfailfirst   = 1;    /* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
-static const int          winiconsize               = 16;   /* 窗口图标尺寸 */
-static const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
-static const float        mfact                     = 0.55; /* 主工作区 大小比例 */
-static const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
-static const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
-static const int          lockfullscreen            = 0;    /* 强制焦点在全屏窗口上 */
+#include "dwm.h"
+#include "config.h"
 
+      int          show_systray               = 1;    /* 是否显示系统托盘 */
+const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
+const int          minclientheight           = 100;  /* 最小窗口高度 */
+const unsigned int borderpx                  = 1;    /* 窗口边框大小 */
+const unsigned int gappx                     = 5;    /* 窗口间隔 */
+const unsigned int overviewgappx             = 5;    /* 预览窗口间隔 */
+const unsigned int snap                      = 32;   /* 边缘依附宽度 */
+const int          showbar                   = 1;    /* 是否显示状态栏 */
+const int          topbar                    = 1;    /* 指定状态栏位置 0底部 1顶部 */
+const int          vertpad                   = 10;       /* vertical padding of bar */
+const int          sidepad                   = 10;       /* horizontal padding of bar */
+const int           userbarheight            = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
+const unsigned int systrayiconsize           = 20;   /* 系统托盘图标尺寸 */
+const unsigned int systraypinning            = 2;    /* 托盘跟随的显示器 0代表不指定显示器 */
+const unsigned int systrayspacing            = 2;    /* 系统托盘间距 */
+const unsigned int systrayspadding = 5;        /* 托盘和状态栏的间隙 */
+const int          systraypinningfailfirst   = 1;    /* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
+const int          winiconsize               = 16;   /* 窗口图标尺寸 */
+const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
+const float        mfact                     = 0.55; /* 主工作区 大小比例 */
+const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
+const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
+const int          lockfullscreen            = 0;    /* 强制焦点在全屏窗口上 */
 
 
 /* 自定义脚本位置 */
-static const char *autostartscript = "$DWM/autostart.sh";
-static const char *statusbarscript = "$DWM/statusbar/statusbar.sh";
+const char *autostartscript = "$DWM/autostart.sh";
+const char *statusbarscript = "$DWM/statusbar/statusbar.sh";
 
 /* 自定义 scratchpad instance */
-static const char         scratchpadname[]          = { "scratchpad" };
+const char         scratchpadname[]          = { "scratchpad" };
 
 /* Lockfile */
-static const char         lockfile[]                = "/tmp/dwm.lock";
+const char         lockfile[]                = "/tmp/dwm.lock";
 
-static const unsigned int baralpha                  = 0xa0; /* 状态栏透明度 */
-static const unsigned int borderalpha               = OPAQUE;/* 边框透明度 */
+const unsigned int baralpha                  = 0xa0; /* 状态栏透明度 */
+const unsigned int borderalpha               = OPAQUE;/* 边框透明度 */
 
-static const char *fonts[]          = { "JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13" };
-static const char *colors[][3]      = {
+const char *fonts[]          = { "JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13" };
+const char *colors[][3]      = {
     /*                       fg         bg         border   */
     [SchemeNorm] = { "#bbbbbb", "#333333", "#444444" },
     [SchemeSel] = { "#ffffff", "#37474F", "#42A5F5" },
@@ -51,22 +53,22 @@ static const char *colors[][3]      = {
     [SchemeSelTag] = { "#eeeeee", "#333333", NULL },
     [SchemeBarEmpty] = { NULL, "#111111", NULL },
 };
-static const unsigned int alphas[][3]      = {
+const unsigned int alphas[][3]      = {
     /*               fg      bg        border     */
     [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
     [SchemeSel]  = { OPAQUE, baralpha, borderalpha },
     [SchemeSelGlobal] = { OPAQUE, baralpha, borderalpha },
     [SchemeNormTag] = { OPAQUE, baralpha, borderalpha }, 
     [SchemeSelTag] = { OPAQUE, baralpha, borderalpha },
-    [SchemeBarEmpty] = { NULL, 0xa0a, NULL },
-    [SchemeStatusText] = { OPAQUE, 0x88, NULL },
-};
+    [SchemeBarEmpty] = { 0x00U, 0xa0a, 0x00U },
+    [SchemeStatusText] = { OPAQUE, 0x88, 0x00U },
+}; 
 
 /* 自定义tag名称 */
-/* 自定义特定实例的显示状态 */\
-static const char *tags[] = { "", "", "", "", "", "", "", "", "", "", "", "", "", "﬐", "" };\
+/* 自定义特定实例的显示状态 */
+const char *tags[16] = { "", "", "", "", "", "", "", "", "","", "", "", "", "", "﬐", "" };
 
-static const Rule rules[] = {
+const Rule rules[] = {
     /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor floatposition */
     { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1, 0},
     { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           0,               -1, 0 },
@@ -105,11 +107,11 @@ static const Rule rules[] = {
     // { NULL,                  NULL,                "broken",          0,            1,          0,          0,        -1,      0}, // 错误载入时 会有broken 浮动
 };
 
-static const char *overviewtag = "OVERVIEW";
-static const Layout overviewlayout = { "",  overview };
+const char *overviewtag = "OVERVIEW";
+const Layout overviewlayout = { "",  overview };
 
 /* 自定义布局 */
-static const Layout layouts[] = {
+const Layout layouts[] = {
     { "﬿", tile },      /* 平铺*/
     { "﩯", magicgrid }, /* 网格 */
     { "", monocle },   /* 单窗口 */
@@ -137,7 +139,7 @@ static const Layout layouts[] = {
     { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
 /* commands */
-static const Key keys[] = {
+const Key keys[] = {
     /* modifier                     key        function        argument */
     { MODKEY|ShiftMask,             XK_q,      quit,           {0} },                               /* super shift q             |  退出dwm */
     { MODKEY,                       XK_q,      killclient,     {0} },                               /* super q                   |  关闭窗口 */
@@ -218,7 +220,7 @@ static const Key keys[] = {
 
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
-static const Button buttons[] = {
+const Button buttons[] = {
     /* click                event mask      button          function        argument */
     { ClkLtSymbol,          0,              Button1,        setlayout,        {0} },
     { ClkLtSymbol,          0,              Button3,        setlayout,        {.v = &layouts[2]} },
@@ -234,11 +236,20 @@ static const Button buttons[] = {
     { ClkTagBar,            MODKEY,         Button3,        toggletag,        {0} },
 
     /* 点击状态栏操作 */
-    { ClkStatusText,       0,               Button1,          clickstatusbar,{0} },                                   // 左键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal L
-    { ClkStatusText,       0,               Button2,          clickstatusbar,{0} },                                   // 中键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal M
-    { ClkStatusText,       0,               Button3,          clickstatusbar,{0} },                                   // 右键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal R
-    { ClkStatusText,       0,               Button4,          clickstatusbar,{0} },                                   // 鼠标滚轮上  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal U
-    { ClkStatusText,       0,               Button5,          clickstatusbar,{0} },                                   // 鼠标滚轮下  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal D
+    { ClkStatusText,       0,               Button1,          click_status_bar,{0} },                                   // 左键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal L
+    { ClkStatusText,       0,               Button2,          click_status_bar,{0} },                                   // 中键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal M
+    { ClkStatusText,       0,               Button3,          click_status_bar,{0} },                                   // 右键        |  点击状态栏   |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal R
+    { ClkStatusText,       0,               Button4,          click_status_bar,{0} },                                   // 鼠标滚轮上  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal U
+    { ClkStatusText,       0,               Button5,          click_status_bar,{0} },                                   // 鼠标滚轮下  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal D
                                                                                                                       //
 };
 
+
+ARRAY_ITEM_COUNT_DEF(fonts)
+ARRAY_ITEM_COUNT_DEF(colors)
+ARRAY_ITEM_COUNT_DEF(alphas)
+ARRAY_ITEM_COUNT_DEF(tags)
+ARRAY_ITEM_COUNT_DEF(rules)
+ARRAY_ITEM_COUNT_DEF(layouts)
+ARRAY_ITEM_COUNT_DEF(keys)
+ARRAY_ITEM_COUNT_DEF(buttons)

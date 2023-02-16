@@ -3,10 +3,13 @@
 
 include config.mk
 
-SRC = drw.c dwm.c util.c
-OBJ = ${SRC:.c=.o}
+OBJ_DIR := build
 
-all: options dwm
+# SRC = drw.c dwm.c util.c config.c layout.c tag.c window.c monitor.c client.c bar.c  button_press.c status_bar.c systray.c
+SRC = $(wildcard *.c)
+OBJ = $(patsubst  %.c, $(OBJ_DIR)/%.o, $(notdir $(SRC)))
+
+all: mkdir options dwm
 
 options:
 	@echo dwm build options:
@@ -14,8 +17,11 @@ options:
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
 
-.c.o:
-	${CC} -c ${CFLAGS} $<
+mkdir:
+	mkdir -p $(OBJ_DIR)
+
+$(OBJ_DIR)/%.o:%.c
+	${CC} -c ${CFLAGS} -o $@ -c $<
 
 ${OBJ}: config.h config.mk
 

@@ -1,4 +1,5 @@
-config.h
+/.vscode
+/build
 *.orig
 *.rej
 *.o
