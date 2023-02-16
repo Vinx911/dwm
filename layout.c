@@ -195,11 +195,11 @@ void tile(Monitor *m)
 void setlayout(const Arg *arg)
 {
     if (!arg || !arg->v || arg->v != select_monitor->lt[select_monitor->sellt]) {
-        select_monitor->sellt = select_monitor->pertag->sellts[select_monitor->pertag->curtag] ^= 1;
+        select_monitor->sellt = select_monitor->pertag->layout[select_monitor->pertag->curtag].sellts ^= 1;
     }
     if (arg && arg->v) {
         select_monitor->lt[select_monitor->sellt] =
-            select_monitor->pertag->ltidxs[select_monitor->pertag->curtag][select_monitor->sellt] = (Layout *)arg->v;
+            select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt] = (Layout *)arg->v;
     }
     strncpy(select_monitor->ltsymbol, select_monitor->lt[select_monitor->sellt]->symbol,
             sizeof select_monitor->ltsymbol);

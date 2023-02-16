@@ -632,7 +632,7 @@ void incnmaster(const Arg *arg)
     } else if (nmaster >= 3) {
         nmaster = 1;
     }
-    select_monitor->nmaster = select_monitor->pertag->nmasters[select_monitor->pertag->curtag] = MAX(nmaster, 1);
+    select_monitor->nmaster = select_monitor->pertag->layout[select_monitor->pertag->curtag].nmasters = MAX(nmaster, 1);
     arrange(select_monitor);
 }
 
@@ -1114,7 +1114,7 @@ void setmfact(const Arg *arg)
     if (f < 0.05 || f > 0.95) {
         return;
     }
-    select_monitor->mfact = select_monitor->pertag->mfacts[select_monitor->pertag->curtag] = f;
+    select_monitor->mfact = select_monitor->pertag->layout[select_monitor->pertag->curtag].mfacts = f;
     arrange(select_monitor);
 }
 

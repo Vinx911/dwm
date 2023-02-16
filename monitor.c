@@ -56,19 +56,20 @@ Monitor *createmon(void)
     m->lt[0]                    = &layouts[0];
     m->lt[1]                    = &layouts[1 % layouts_count()];
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
+    m->is_overview                         = 0;
     m->pertag         = ecalloc(1, sizeof(Pertag));
     m->pertag->curtag = m->pertag->prevtag = 1;
-    m->is_overview                         = 0;
+    m->pertag->layout = ecalloc(TAGS_COUNT, sizeof(struct LayoutConfig));
 
     for (i = 0; i <= TAGS_COUNT; i++) {
-        m->pertag->nmasters[i] = m->nmaster;
-        m->pertag->mfacts[i]   = m->mfact;
+        m->pertag->layout[i].nmasters = m->nmaster;
+        m->pertag->layout[i].mfacts   = m->mfact;
 
-        m->pertag->ltidxs[i][0] = m->lt[0];
-        m->pertag->ltidxs[i][1] = m->lt[1];
-        m->pertag->sellts[i]    = m->sellt;
+        m->pertag->layout[i].ltidxs[0] = m->lt[0];
+        m->pertag->layout[i].ltidxs[1] = m->lt[1];
+        m->pertag->layout[i].sellts    = m->sellt;
 
-        m->pertag->showbars[i] = m->showbar;
+        m->pertag->layout[i].showbars = m->showbar;
     }
 
     return m;

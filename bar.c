@@ -147,7 +147,7 @@ int updategeom(void)
  */
 void togglebar(const Arg *arg)
 {
-    select_monitor->showbar = select_monitor->pertag->showbars[select_monitor->pertag->curtag] =
+    select_monitor->showbar = select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars =
         !select_monitor->showbar;
     updatebarpos(select_monitor);
     XMoveResizeWindow(dpy, select_monitor->bar_window, select_monitor->wx + sp, select_monitor->by + vp,

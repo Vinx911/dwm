@@ -79,128 +79,50 @@
 #define VERSION_MINOR 0
 #define XEMBED_EMBEDDED_VERSION (VERSION_MAJOR << 16) | VERSION_MINOR
 
+void clientmessage(XEvent *e);
+void configurenotify(XEvent *e);
+void configurerequest(XEvent *e);
+void destroynotify(XEvent *e);
+void enternotify(XEvent *e);
+void expose(XEvent *e);
+void focus(Client *c);
+void focusin(XEvent *e);
+void focusmon(const Arg *arg);
+void focusstackvis(const Arg *arg);
+void focusstackhid(const Arg *arg);
+void focusstack(int inc, int vis);
+int getrootptr(int *x, int *y);
+void grabbuttons(Client *c, int focused);
+void incnmaster(const Arg *arg);
+void keypress(XEvent *e);
+void mappingnotify(XEvent *e);
+void maprequest(XEvent *e);
+void motionnotify(XEvent *e);
+void pointerfocuswin(Client *c);
+void propertynotify(XEvent *e);
+void quit(const Arg *arg);
+void resizerequest(XEvent *e);
+int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
+void setgaps(const Arg *arg);
+void setmfact(const Arg *arg);
+void seturgent(Client *c, int urg);
+void sigchld(int unused);
+void spawn(const Arg *arg);
+void toggleallfloating(const Arg *arg);
+void togglefloating(const Arg *arg);
+void togglescratch(const Arg *arg);
+void unfocus(Client *c, int setfocus);
+void unmanage(Client *c, int destroyed);
+void unmapnotify(XEvent *e);
+void updatenumlockmask(void);
+int  xerror(Display *dpy, XErrorEvent *ee);
+int  xerrordummy(Display *dpy, XErrorEvent *ee);
+int  xerrorstart(Display *dpy, XErrorEvent *ee);
+void xinitvisual();
+void zoom(const Arg *arg);
 
-// void         applyrules(Client *c);
-// int          applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
-// void         arrange(Monitor *m);
-// void         arrangemon(Monitor *m);
-// void         attach(Client *c);
-// void         attachstack(Client *c);
-// // void         button_press(XEvent *e);
-// void         check_other_wm(void);
-// void         cleanup(void);
-// void         cleanup_monitor(Monitor *mon);
-void         clientmessage(XEvent *e);
-// void         configure(Client *c);
-void         configurenotify(XEvent *e);
-void         configurerequest(XEvent *e);
-// Monitor     *createmon(void);
-void         destroynotify(XEvent *e);
-// void         detach(Client *c);
-// void         detachstack(Client *c);
-// Monitor     *dirtomon(int dir);
-// void         drawbar(Monitor *m);
-// void         drawbars(void);
-// void         enqueue(Client *c);
-// void         enqueuestack(Client *c);
-void         enternotify(XEvent *e);
-void         expose(XEvent *e);
-void         focus(Client *c);
-void         focusin(XEvent *e);
-void         focusmon(const Arg *arg);
-void         focusstackvis(const Arg *arg);
-void         focusstackhid(const Arg *arg);
-void         focusstack(int inc, int vis);
-// void         freeicon(Client *c);
-// void         grid2(Monitor *m);
-// void         magicgrid(Monitor *m);
-// void         overview(Monitor *m);
-// void         grid(Monitor *m, uint gappx);
-// Atom         getatomprop(Client *c, Atom prop);
-// Picture      geticonprop(Window w, unsigned int *icw, unsigned int *ich);
-int          getrootptr(int *x, int *y);
-// long         getstate(Window w);
-// int          gettextprop(Window w, Atom atom, char *text, unsigned int size);
 
-void         grabbuttons(Client *c, int focused);
-// void         grabkeys(void);
-// void         hide(const Arg *arg);
-// void         hidewin(Client *c);
-void         incnmaster(const Arg *arg);
-void         keypress(XEvent *e);
-// void         killclient(const Arg *arg);
-// void         manage(Window w, XWindowAttributes *wa);
-void         mappingnotify(XEvent *e);
-void         maprequest(XEvent *e);
-// void         monocle(Monitor *m);
-void         motionnotify(XEvent *e);
-// void         movemouse(const Arg *arg);
-// Client      *nexttiled(Client *c);
-void         pointerfocuswin(Client *c);
-// void         pop(Client *c);
-void         propertynotify(XEvent *e);
-void         quit(const Arg *arg);
-// Monitor     *recttomon(int x, int y, int w, int h);
-// void         resize(Client *c, int x, int y, int w, int h, int interact);
-// void         resizeclient(Client *c, int x, int y, int w, int h);
-// void         resizemouse(const Arg *arg);
-void         resizerequest(XEvent *e);
-// void         restack(Monitor *m);
-// void         rotatestack(const Arg *arg);
-// void         run(void);
-// void         runautostart(void);
-// void         scan(void);
-int          sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
-// void         sendmon(Client *c, Monitor *m);
-// void         setclientstate(Client *c, long state);
-// void         setfocus(Client *c);
-// void         setfullscreen(Client *c, int fullscreen);
-// void         fullscreen(const Arg *arg);
-void         setgaps(const Arg *arg);
-// void         setlayout(const Arg *arg);
-void         setmfact(const Arg *arg);
-// void         setup(void);
-void         seturgent(Client *c, int urg);
-// void         show(const Arg *arg);
-// void         showall(const Arg *arg);
-// void         showwin(Client *c);
-// void         showhide(Client *c);
-void         sigchld(int unused);
-void         spawn(const Arg *arg);
-// void         tag(const Arg *arg);
-// void         tagmon(const Arg *arg);
-// void         tile(Monitor *m);
-void         toggleallfloating(const Arg *arg);
-// void         togglebar(const Arg *arg);
-void         togglefloating(const Arg *arg);
-// void         togglefakefullscreen(const Arg *arg);
-// void         togglemonocle(const Arg *arg);
-// void         toggleoverview(const Arg *arg);
-void         togglescratch(const Arg *arg);
-// void         toggletag(const Arg *arg);
-// void         toggleview(const Arg *arg);
-// void         togglewin(const Arg *arg);
-void         unfocus(Client *c, int setfocus);
-void         unmanage(Client *c, int destroyed);
-void         unmapnotify(XEvent *e);
-// void         updatebarpos(Monitor *m);
-// void         updatebars(void);
-// void         updateclientlist(void);
-// int          updategeom(void);
-void         updatenumlockmask(void);
-// void         updatesizehints(Client *c);
-// void         updatetitle(Client *c);
-// void         updateicon(Client *c);
-// void         updatewindowtype(Client *c);
-// void         updatewmhints(Client *c);
-// void         view(const Arg *arg);
-// Client      *window_to_client(Window w);
-// Monitor     *window_to_monitor(Window w);
-int          xerror(Display *dpy, XErrorEvent *ee);
-int          xerrordummy(Display *dpy, XErrorEvent *ee);
-int          xerrorstart(Display *dpy, XErrorEvent *ee);
-void         xinitvisual();
-void         zoom(const Arg *arg);
+#include "config.h"
 
 extern const char autostartblocksh[];
 extern const char autostartsh[];
@@ -229,9 +151,9 @@ extern Cur     *cursor[CurLast]; /* 光标 */
 extern Clr    **scheme;          /* 配色 */
 extern Display *dpy;             /* 默认显示器 */
 extern Drw     *drw;
-extern Monitor *mons;   /* 监视器列表 */
+extern Monitor *mons;           /* 监视器列表 */
 extern Monitor *select_monitor; /* 当前选择的监视器 */
-extern Window   root;   /* 根窗口 */
+extern Window   root;           /* 根窗口 */
 extern Window   wmcheckwin;
 
 extern int      useargb; /* 使用argb */
@@ -240,16 +162,5 @@ extern int      depth;   /* 颜色位深 */
 extern Colormap cmap;    /* 颜色映射 */
 
 
-#include "config.h"
-
-struct Pertag
-{
-    unsigned int  curtag, prevtag;             /* current and previous tag */
-    int           nmasters[TAGS_COUNT + 1];  /* number of windows in master area */
-    float         mfacts[TAGS_COUNT + 1];    /* mfacts per tag */
-    unsigned int  sellts[TAGS_COUNT + 1];    /* selected layouts */
-    const Layout *ltidxs[TAGS_COUNT + 1][2]; /* matrix of tags and layouts indexes  */
-    int           showbars[TAGS_COUNT + 1];  /* display bar for the current tag */
-};
 
 #endif  // DWM_H

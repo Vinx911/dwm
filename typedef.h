@@ -1,16 +1,18 @@
 #ifndef TYPEDEF_H
 #define TYPEDEF_H
 
-typedef struct {
+typedef struct
+{
     Cursor cursor;
 } Cur;
 
-typedef struct Fnt {
-    Display* dpy; //所属的显示器
-    unsigned int h; //字体高度（字号大小）
-    XftFont* xfont; //指向X库中的xftFont结构体，是字体实现的核心
-    FcPattern* pattern; //模式
-    struct Fnt* next; //指向下一个字体
+typedef struct Fnt
+{
+    Display     *dpy;      // 所属的显示器
+    unsigned int h;        // 字体高度（字号大小）
+    XftFont     *xfont;    // 指向X库中的xftFont结构体，是字体实现的核心
+    FcPattern   *pattern;  // 模式
+    struct Fnt  *next;     // 指向下一个字体
 } Fnt;
 
 enum {
@@ -23,19 +25,20 @@ typedef XftColor Clr;
 /**
  * 可绘制视窗的管理结构体
  */
-typedef struct {
-    unsigned int w, h; //宽，高
-    Display* dpy; //所属显示器
-    int screen; //屏幕号
-    Window root; //根视窗
-    Visual* visual; // visual
-    unsigned int depth; // 颜色位深
-    Colormap cmap; // 颜色映射
-    Drawable drawable;
-    Picture picture; // 窗口图标
-    GC gc; // 图形上下文,存储前景色、背景色、线条样式等
-    Clr* scheme; //配色
-    Fnt* fonts; //字体
+typedef struct
+{
+    unsigned int w, h;    // 宽，高
+    Display     *dpy;     // 所属显示器
+    int          screen;  // 屏幕号
+    Window       root;    // 根视窗
+    Visual      *visual;  // visual
+    unsigned int depth;   // 颜色位深
+    Colormap     cmap;    // 颜色映射
+    Drawable     drawable;
+    Picture      picture;  // 窗口图标
+    GC           gc;       // 图形上下文,存储前景色、背景色、线条样式等
+    Clr         *scheme;   // 配色
+    Fnt         *fonts;    // 字体
 } Drw;
 
 /* enums */
@@ -161,7 +164,19 @@ typedef struct
     void (*arrange)(Monitor *);
 } Layout;
 
-typedef struct Pertag Pertag;
+typedef struct
+{
+    unsigned int curtag, prevtag; /* current and previous tag */
+    struct LayoutConfig
+    {
+        int           nmasters;  /* number of windows in master area */
+        float         mfacts;    /* mfacts per tag */
+        unsigned int  sellts;    /* selected layouts */
+        const Layout *ltidxs[2]; /* matrix of tags and layouts indexes  */
+        int           showbars;  /* display bar for the current tag */
+    } *layout;
+} Pertag;
+
 struct Monitor
 {
     char          ltsymbol[16]; /* 布局指示符号 */
@@ -170,7 +185,7 @@ struct Monitor
     int           num;
     int           by;             /* bar geometry */
     int           task_bar_width; /* width of tasks portion of bar */
-    int           task_count;             /* number of tasks */
+    int           task_count;     /* number of tasks */
     int           mx, my, mw, mh; /* 屏幕尺寸 */
     int           wx, wy, ww, wh; /* 窗口区域的尺寸  */
     int           gappx;          /* 窗口间的间距 */
@@ -181,10 +196,10 @@ struct Monitor
     int           topbar;         /* bar在顶部显示 */
     int           hidsel;         /* 隐藏窗口选中, *临时显示* */
     Client       *clients;        /* 客户端列表 */
-    Client       *select;            /* 当前选择的客户端 */
+    Client       *select;         /* 当前选择的客户端 */
     Client       *stack;          /* 客户端的栈 */
     Monitor      *next;           /* 下一个监视器 */
-    Window        bar_window;         /* Bar的窗口 */
+    Window        bar_window;     /* Bar的窗口 */
     const Layout *lt[2];          /* 布局 */
     Pertag       *pertag;
     uint          is_overview;
@@ -211,4 +226,4 @@ struct Systray
     Client *icons;
 };
 
-#endif // TYPEDEF_H
+#endif  // TYPEDEF_H

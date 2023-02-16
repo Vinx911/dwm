@@ -2,45 +2,47 @@
 #include "dwm.h"
 #include "config.h"
 
-      int          show_systray               = 1;    /* 是否显示系统托盘 */
-const int          newclientathead           = 0;    /* 定义新窗口在栈顶还是栈底 */
-const int          minclientheight           = 100;  /* 最小窗口高度 */
-const unsigned int borderpx                  = 1;    /* 窗口边框大小 */
-const unsigned int gappx                     = 5;    /* 窗口间隔 */
-const unsigned int overviewgappx             = 5;    /* 预览窗口间隔 */
-const unsigned int snap                      = 32;   /* 边缘依附宽度 */
-const int          showbar                   = 1;    /* 是否显示状态栏 */
-const int          topbar                    = 1;    /* 指定状态栏位置 0底部 1顶部 */
-const int          vertpad                   = 10;       /* vertical padding of bar */
-const int          sidepad                   = 10;       /* horizontal padding of bar */
-const int           userbarheight            = 8;    /* bar的额外高度, 总高度为 字体高度 + userbarheight */
-const unsigned int systrayiconsize           = 20;   /* 系统托盘图标尺寸 */
-const unsigned int systraypinning            = 2;    /* 托盘跟随的显示器 0代表不指定显示器 */
-const unsigned int systrayspacing            = 2;    /* 系统托盘间距 */
-const unsigned int systrayspadding = 5;        /* 托盘和状态栏的间隙 */
-const int          systraypinningfailfirst   = 1;    /* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
-const int          winiconsize               = 16;   /* 窗口图标尺寸 */
-const int          winiconspacing            = 5;    /* 窗口图标与窗口标题间的间距*/
-const float        mfact                     = 0.55; /* 主工作区 大小比例 */
-const int          nmaster                   = 1;    /* 主工作区 窗口数量 */
-const int          resizehints               = 1;    /* 1 means respect size hints in tiled resizals */
-const int          lockfullscreen            = 0;    /* 强制焦点在全屏窗口上 */
-
+int                show_systray    = 1;   /* 是否显示系统托盘 */
+const int          newclientathead = 0;   /* 定义新窗口在栈顶还是栈底 */
+const int          minclientheight = 100; /* 最小窗口高度 */
+const unsigned int borderpx        = 1;   /* 窗口边框大小 */
+const unsigned int gappx           = 5;   /* 窗口间隔 */
+const unsigned int overviewgappx   = 5;   /* 预览窗口间隔 */
+const unsigned int snap            = 32;  /* 边缘依附宽度 */
+const int          showbar         = 1;   /* 是否显示状态栏 */
+const int          topbar          = 1;   /* 指定状态栏位置 0底部 1顶部 */
+const int          vertpad         = 10;  /* vertical padding of bar */
+const int          sidepad         = 10;  /* horizontal padding of bar */
+const int          userbarheight   = 8;   /* bar的额外高度, 总高度为 字体高度 + userbarheight */
+const unsigned int systrayiconsize = 20;  /* 系统托盘图标尺寸 */
+const unsigned int systraypinning  = 2;   /* 托盘跟随的显示器 0代表不指定显示器 */
+const unsigned int systrayspacing  = 2;   /* 系统托盘间距 */
+const unsigned int systrayspadding = 5;   /* 托盘和状态栏的间隙 */
+const int          systraypinningfailfirst =
+    1; /* 1：如果 pinning 失败，在第一台显示器上显示系统托盘，0：在最后一台显示器上显示系统托盘 */
+const int   winiconsize    = 16;   /* 窗口图标尺寸 */
+const int   winiconspacing = 5;    /* 窗口图标与窗口标题间的间距*/
+const float mfact          = 0.55; /* 主工作区 大小比例 */
+const int   nmaster        = 1;    /* 主工作区 窗口数量 */
+const int   resizehints    = 1;    /* 1 means respect size hints in tiled resizals */
+const int   lockfullscreen = 0;    /* 强制焦点在全屏窗口上 */
 
 /* 自定义脚本位置 */
 const char *autostartscript = "$DWM/autostart.sh";
 const char *statusbarscript = "$DWM/statusbar/statusbar.sh";
 
 /* 自定义 scratchpad instance */
-const char         scratchpadname[]          = { "scratchpad" };
+const char scratchpadname[] = {"scratchpad"};
 
 /* Lockfile */
-const char         lockfile[]                = "/tmp/dwm.lock";
+const char lockfile[] = "/tmp/dwm.lock";
 
-const unsigned int baralpha                  = 0xa0; /* 状态栏透明度 */
-const unsigned int borderalpha               = OPAQUE;/* 边框透明度 */
+const unsigned int baralpha    = 0xa0;   /* 状态栏透明度 */
+const unsigned int borderalpha = OPAQUE; /* 边框透明度 */
 
-const char *fonts[]          = { "JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13" };
+const char *fonts[] = {"JetBrainsMono Nerd Font:style=medium:size=13", "monospace:size=13"};
+
+// clang-format off
 const char *colors[][3]      = {
     /*                       fg         bg         border   */
     [SchemeNorm] = { "#bbbbbb", "#333333", "#444444" },
@@ -53,6 +55,8 @@ const char *colors[][3]      = {
     [SchemeSelTag] = { "#eeeeee", "#333333", NULL },
     [SchemeBarEmpty] = { NULL, "#111111", NULL },
 };
+// clang-format on
+// clang-format off
 const unsigned int alphas[][3]      = {
     /*               fg      bg        border     */
     [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
@@ -62,12 +66,15 @@ const unsigned int alphas[][3]      = {
     [SchemeSelTag] = { OPAQUE, baralpha, borderalpha },
     [SchemeBarEmpty] = { 0x00U, 0xa0a, 0x00U },
     [SchemeStatusText] = { OPAQUE, 0x88, 0x00U },
-}; 
+};
+// clang-format on
 
 /* 自定义tag名称 */
 /* 自定义特定实例的显示状态 */
-const char *tags[16] = { "", "", "", "", "", "", "", "", "","", "", "", "", "", "﬐", "" };
+const char *tags[16] = {"", "", "", "", "", "", "", "",
+                        "", "", "", "", "", "", "﬐", ""};
 
+// clang-format off
 const Rule rules[] = {
     /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor floatposition */
     { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1, 0},
@@ -106,38 +113,43 @@ const Rule rules[] = {
     // { NULL,                  NULL,                "crx_",            0,            1,          0,          0,        -1,      0}, // 错误载入时 会有crx_ 浮动
     // { NULL,                  NULL,                "broken",          0,            1,          0,          0,        -1,      0}, // 错误载入时 会有broken 浮动
 };
+// clang-format on
 
-const char *overviewtag = "OVERVIEW";
-const Layout overviewlayout = { "",  overview };
+const char  *overviewtag    = "OVERVIEW";
+const Layout overviewlayout = {"", overview};
 
 /* 自定义布局 */
 const Layout layouts[] = {
-    { "﬿", tile },      /* 平铺*/
-    { "﩯", magicgrid }, /* 网格 */
-    { "", monocle },   /* 单窗口 */
-    { "", NULL },      /* 浮动 */
+    {"﬿", tile},      /* 平铺*/
+    {"﩯", magicgrid}, /* 网格 */
+    {"", monocle},   /* 单窗口 */
+    {"", NULL},      /* 浮动 */
 };
 
 #define MODKEY Mod4Mask
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-#define TAGKEYS(KEY,TAG) \
-    { MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
-    { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-    { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
-    { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+#define SHCMD(cmd)                     \
+    {                                  \
+        .v = (const char *[])          \
+        {                              \
+            "/bin/sh", "-c", cmd, NULL \
+        }                              \
+    }
+#define TAGKEYS(KEY, TAG)                                                                             \
+    {MODKEY, KEY, view, {.ui = 1 << TAG}}, {MODKEY | ControlMask, KEY, toggleview, {.ui = 1 << TAG}}, \
+        {MODKEY | ShiftMask, KEY, tag, {.ui = 1 << TAG}},                                             \
+        {MODKEY | ControlMask | ShiftMask, KEY, toggletag, {.ui = 1 << TAG}},
 
-#define TAGKEYS1(KEY,TAG, cmd1) \
-    { MODKEY,                       KEY,      view,           {.ui = 1 << TAG, .v = cmd1} }, \
-    { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-    { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
-    { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+#define TAGKEYS1(KEY, TAG, cmd1)                                                                                 \
+    {MODKEY, KEY, view, {.ui = 1 << TAG, .v = cmd1}}, {MODKEY | ControlMask, KEY, toggleview, {.ui = 1 << TAG}}, \
+        {MODKEY | ShiftMask, KEY, tag, {.ui = 1 << TAG}},                                                        \
+        {MODKEY | ControlMask | ShiftMask, KEY, toggletag, {.ui = 1 << TAG}},
 
-#define TAGKEYS2(KEY,TAG, cmd1, cmd2) \
-    { MODKEY,                       KEY,      view,           {.ui = 1 << TAG, .v = cmd1} }, \
-    { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-    { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG, .v = cmd2} }, \
-    { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
+#define TAGKEYS2(KEY, TAG, cmd1, cmd2)                                                                           \
+    {MODKEY, KEY, view, {.ui = 1 << TAG, .v = cmd1}}, {MODKEY | ControlMask, KEY, toggleview, {.ui = 1 << TAG}}, \
+        {MODKEY | ShiftMask, KEY, tag, {.ui = 1 << TAG, .v = cmd2}},                                             \
+        {MODKEY | ControlMask | ShiftMask, KEY, toggletag, {.ui = 1 << TAG}},
 
+// clang-format off
 /* commands */
 const Key keys[] = {
     /* modifier                     key        function        argument */
@@ -217,7 +229,9 @@ const Key keys[] = {
     TAGKEYS2(XK_e, 13, "~/.dwm/scripts/app-starter.sh wechat",  "~/.dwm/scripts/app-starter.sh wechat")
     TAGKEYS2(XK_f,  14, "~/.dwm/scripts/app-starter.sh ssr",  "~/.dwm/scripts/app-starter.sh ssr")
 };
+// clang-format on
 
+// clang-format off
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 const Button buttons[] = {
@@ -243,7 +257,7 @@ const Button buttons[] = {
     { ClkStatusText,       0,               Button5,          click_status_bar,{0} },                                   // 鼠标滚轮下  |  状态栏       |  根据状态栏的信号执行 ~/scripts/dwmstatusbar.sh $signal D
                                                                                                                       //
 };
-
+// clang-format on
 
 ARRAY_ITEM_COUNT_DEF(fonts)
 ARRAY_ITEM_COUNT_DEF(colors)

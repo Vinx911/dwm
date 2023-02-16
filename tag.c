@@ -31,15 +31,15 @@ void view(const Arg *arg)
         select_monitor->pertag->curtag  = tmptag;
     }
 
-    select_monitor->nmaster = select_monitor->pertag->nmasters[select_monitor->pertag->curtag];
-    select_monitor->mfact   = select_monitor->pertag->mfacts[select_monitor->pertag->curtag];
-    select_monitor->sellt   = select_monitor->pertag->sellts[select_monitor->pertag->curtag];
+    select_monitor->nmaster = select_monitor->pertag->layout[select_monitor->pertag->curtag].nmasters;
+    select_monitor->mfact   = select_monitor->pertag->layout[select_monitor->pertag->curtag].mfacts;
+    select_monitor->sellt   = select_monitor->pertag->layout[select_monitor->pertag->curtag].sellts;
     select_monitor->lt[select_monitor->sellt] =
-        select_monitor->pertag->ltidxs[select_monitor->pertag->curtag][select_monitor->sellt];
+        select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt];
     select_monitor->lt[select_monitor->sellt ^ 1] =
-        select_monitor->pertag->ltidxs[select_monitor->pertag->curtag][select_monitor->sellt ^ 1];
+        select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt ^ 1];
 
-    if (select_monitor->showbar != select_monitor->pertag->showbars[select_monitor->pertag->curtag]) {
+    if (select_monitor->showbar != select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars) {
         togglebar(NULL);
     }
 
@@ -83,15 +83,15 @@ void toggleview(const Arg *arg)
         }
 
         /* apply settings for this view */
-        select_monitor->nmaster = select_monitor->pertag->nmasters[select_monitor->pertag->curtag];
-        select_monitor->mfact   = select_monitor->pertag->mfacts[select_monitor->pertag->curtag];
-        select_monitor->sellt   = select_monitor->pertag->sellts[select_monitor->pertag->curtag];
+        select_monitor->nmaster = select_monitor->pertag->layout[select_monitor->pertag->curtag].nmasters;
+        select_monitor->mfact   = select_monitor->pertag->layout[select_monitor->pertag->curtag].mfacts;
+        select_monitor->sellt   = select_monitor->pertag->layout[select_monitor->pertag->curtag].sellts;
         select_monitor->lt[select_monitor->sellt] =
-            select_monitor->pertag->ltidxs[select_monitor->pertag->curtag][select_monitor->sellt];
+            select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt];
         select_monitor->lt[select_monitor->sellt ^ 1] =
-            select_monitor->pertag->ltidxs[select_monitor->pertag->curtag][select_monitor->sellt ^ 1];
+            select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt ^ 1];
 
-        if (select_monitor->showbar != select_monitor->pertag->showbars[select_monitor->pertag->curtag])
+        if (select_monitor->showbar != select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars)
             togglebar(NULL);
 
         focus(NULL);
