@@ -1,5 +1,14 @@
 
 #include "dwm.h"
+#include "layout.h"
+#include "tag.h"
+#include "window.h"
+#include "monitor.h"
+#include "client.h"
+#include "bar.h"
+#include "button_press.h"
+#include "status_bar.h"
+#include "systray.h"
 #include "config.h"
 
 int                show_systray    = 1;   /* 是否显示系统托盘 */

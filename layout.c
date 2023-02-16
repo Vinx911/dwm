@@ -1,5 +1,10 @@
 
 #include "dwm.h"
+#include "bar.h"
+#include "client.h"
+#include "monitor.h"
+#include "layout.h"
+#include "config.h"
 
 /**
  * 排列窗口

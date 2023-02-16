@@ -1,6 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+
+#define TAGMASK ((1 << TAGS_COUNT) - 1)
+#define OPAQUE 0xffU
+
 extern int                show_systray;    /* 是否显示系统托盘 */
 extern const int          newclientathead; /* 定义新窗口在栈顶还是栈底 */
 extern const int          minclientheight; /* 最小窗口高度 */

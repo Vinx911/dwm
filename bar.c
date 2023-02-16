@@ -1,6 +1,117 @@
 
-
 #include "dwm.h"
+#include "client.h"
+#include "monitor.h"
+#include "window.h"
+#include "layout.h"
+#include "status_bar.h"
+#include "systray.h"
+#include "config.h"
+
+#ifdef XINERAMA
+static int isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
+{
+    while (n--) {
+        if (unique[n].x_org == info->x_org && unique[n].y_org == info->y_org && unique[n].width == info->width
+            && unique[n].height == info->height)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+#endif /* XINERAMA */
+
+/**
+ * 更新Bar尺寸
+ *
+ * @return 是否需要重新绘制
+ */
+int updategeom(void)
+{
+    int dirty = 0;
+
+#ifdef XINERAMA
+    if (XineramaIsActive(dpy)) {
+        int                 i, j, n, nn;
+        Client             *c;
+        Monitor            *m;
+        XineramaScreenInfo *info   = XineramaQueryScreens(dpy, &nn);
+        XineramaScreenInfo *unique = NULL;
+
+        for (n = 0, m = mons; m; m = m->next, n++)
+            ;
+        /* only consider unique geometries as separate screens */
+        unique = ecalloc(nn, sizeof(XineramaScreenInfo));
+        for (i = 0, j = 0; i < nn; i++) {
+            if (isuniquegeom(unique, j, &info[i])) {
+                memcpy(&unique[j++], &info[i], sizeof(XineramaScreenInfo));
+            }
+        }
+        XFree(info);
+        nn = j;
+
+        /* new monitors if nn > n */
+        for (i = n; i < nn; i++) {
+            for (m = mons; m && m->next; m = m->next)
+                ;
+            if (m) {
+                m->next = createmon();
+            } else {
+                mons = createmon();
+            }
+        }
+        for (i = 0, m = mons; i < nn && m; m = m->next, i++) {
+            if (i >= n || unique[i].x_org != m->mx || unique[i].y_org != m->my || unique[i].width != m->mw
+                || unique[i].height != m->mh)
+            {
+                dirty  = 1;
+                m->num = i;
+                m->mx = m->wx = unique[i].x_org;
+                m->my = m->wy = unique[i].y_org;
+                m->mw = m->ww = unique[i].width;
+                m->mh = m->wh = unique[i].height;
+                updatebarpos(m);
+            }
+        }
+        /* removed monitors if n > nn */
+        for (i = nn; i < n; i++) {
+            for (m = mons; m && m->next; m = m->next)
+                ;
+            while ((c = m->clients)) {
+                dirty      = 1;
+                m->clients = c->next;
+                detachstack(c);
+                c->mon = mons;
+                attach(c);
+                attachstack(c);
+            }
+            if (m == select_monitor) {
+                select_monitor = mons;
+            }
+            cleanup_monitor(m);
+        }
+        free(unique);
+    } else
+#endif /* XINERAMA */
+    {  /* default monitor setup */
+        if (!mons) {
+            mons = createmon();
+        }
+        if (mons->mw != screen_width || mons->mh != screen_height) {
+            dirty    = 1;
+            mons->mw = mons->ww = screen_width;
+            mons->mh = mons->wh = screen_height;
+            updatebarpos(mons);
+        }
+    }
+    if (dirty) {
+        select_monitor = mons;
+        select_monitor = window_to_monitor(root);
+    }
+    return dirty;
+}
+
 
 /**
  * 更新Bar
@@ -41,106 +152,10 @@ void updatebarpos(Monitor *m)
         m->wh = m->wh - vertpad - bar_height;
         m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;  // 这里实际上是屏幕尺寸的y坐标
         m->wy = m->topbar ? m->wy + bar_height + vp : m->wy;  // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
-    } else
+    } else {
         m->by = -bar_height - vp;  // 不显示, 负值在屏幕外
-}
-
-#ifdef XINERAMA
-static int isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
-{
-    while (n--)
-        if (unique[n].x_org == info->x_org && unique[n].y_org == info->y_org && unique[n].width == info->width
-            && unique[n].height == info->height)
-            return 0;
-    return 1;
-}
-#endif /* XINERAMA */
-
-/**
- * 更新Bar尺寸
- *
- * @return 是否需要重新绘制
- */
-int updategeom(void)
-{
-    int dirty = 0;
-
-#ifdef XINERAMA
-    if (XineramaIsActive(dpy)) {
-        int                 i, j, n, nn;
-        Client             *c;
-        Monitor            *m;
-        XineramaScreenInfo *info   = XineramaQueryScreens(dpy, &nn);
-        XineramaScreenInfo *unique = NULL;
-
-        for (n = 0, m = mons; m; m = m->next, n++)
-            ;
-        /* only consider unique geometries as separate screens */
-        unique = ecalloc(nn, sizeof(XineramaScreenInfo));
-        for (i = 0, j = 0; i < nn; i++)
-            if (isuniquegeom(unique, j, &info[i]))
-                memcpy(&unique[j++], &info[i], sizeof(XineramaScreenInfo));
-        XFree(info);
-        nn = j;
-
-        /* new monitors if nn > n */
-        for (i = n; i < nn; i++) {
-            for (m = mons; m && m->next; m = m->next)
-                ;
-            if (m)
-                m->next = createmon();
-            else
-                mons = createmon();
-        }
-        for (i = 0, m = mons; i < nn && m; m = m->next, i++)
-            if (i >= n || unique[i].x_org != m->mx || unique[i].y_org != m->my || unique[i].width != m->mw
-                || unique[i].height != m->mh)
-            {
-                dirty  = 1;
-                m->num = i;
-                m->mx = m->wx = unique[i].x_org;
-                m->my = m->wy = unique[i].y_org;
-                m->mw = m->ww = unique[i].width;
-                m->mh = m->wh = unique[i].height;
-                updatebarpos(m);
-            }
-        /* removed monitors if n > nn */
-        for (i = nn; i < n; i++) {
-            for (m = mons; m && m->next; m = m->next)
-                ;
-            while ((c = m->clients)) {
-                dirty      = 1;
-                m->clients = c->next;
-                detachstack(c);
-                c->mon = mons;
-                attach(c);
-                attachstack(c);
-            }
-            if (m == select_monitor)
-                select_monitor = mons;
-            cleanup_monitor(m);
-        }
-        free(unique);
-    } else
-#endif /* XINERAMA */
-    {  /* default monitor setup */
-        if (!mons) {
-            mons = createmon();
-        }
-        if (mons->mw != screen_width || mons->mh != screen_height) {
-            dirty    = 1;
-            mons->mw = mons->ww = screen_width;
-            mons->mh = mons->wh = screen_height;
-            updatebarpos(mons);
-        }
     }
-    if (dirty) {
-        select_monitor = mons;
-        select_monitor = window_to_monitor(root);
-    }
-    return dirty;
 }
-
 
 /**
  * 切换bar显示状态
@@ -165,8 +180,6 @@ void togglebar(const Arg *arg)
     }
     arrange(select_monitor);
 }
-
-
 
 /**
  * 绘制Bar
@@ -205,9 +218,9 @@ void drawbar(Monitor *m)
     if (m->is_overview) {
         w = TEXTW(overviewtag);
         drw_setscheme(drw, scheme[SchemeSel]);
-        drw_text(drw, x, 0, w, bar_height, lrpad / 2, overviewtag, 0);
+        drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, overviewtag, 0);
         drw_setscheme(drw, scheme[SchemeUnderline]);
-        drw_rect(drw, x, bar_height - boxw, w + lrpad, boxw, 1, 0);
+        drw_rect(drw, x, bar_height - boxw, w + text_lr_pad, boxw, 1, 0);
         x += w;
     } else {
         for (i = 0; i < TAGS_COUNT; i++) {
@@ -218,10 +231,10 @@ void drawbar(Monitor *m)
 
             w = TEXTW(tags[i]);
             drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
-            drw_text(drw, x, 0, w, bar_height, lrpad / 2, tags[i], urg & 1 << i);
+            drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, tags[i], urg & 1 << i);
             if (m->tagset[m->seltags] & 1 << i) {
                 drw_setscheme(drw, scheme[SchemeUnderline]);
-                drw_rect(drw, x, bar_height - boxw, w + lrpad, boxw, 1, 0);
+                drw_rect(drw, x, bar_height - boxw, w + text_lr_pad, boxw, 1, 0);
             }
             x += w;
         }
@@ -231,7 +244,7 @@ void drawbar(Monitor *m)
     tag_bar_width   = x;
     lt_symbol_width = w;
     drw_setscheme(drw, scheme[SchemeNorm]);
-    x = drw_text(drw, x, 0, w, bar_height, lrpad / 2, m->ltsymbol, 0);
+    x = drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, m->ltsymbol, 0);
 
     if ((w = m->ww - statsu_bar_width - system_tray_width - x - 2 * sp) > bar_height) {
         if (n > 0) {
@@ -257,9 +270,10 @@ void drawbar(Monitor *m)
                     remainder--;
                 }
 
-                drw_text(drw, x, 0, tabw, bar_height, lrpad / 2 + (c->icon ? c->icw + winiconspacing : 0), c->name, 0);
+                drw_text(drw, x, 0, tabw, bar_height, text_lr_pad / 2 + (c->icon ? c->icw + winiconspacing : 0),
+                         c->name, 0);
                 if (c->icon) {
-                    drw_pic(drw, x + lrpad / 2, (bar_height - c->ich) / 2, c->icw, c->ich, c->icon);
+                    drw_pic(drw, x + text_lr_pad / 2, (bar_height - c->ich) / 2, c->icw, c->ich, c->icon);
                 }
 
                 x += tabw;

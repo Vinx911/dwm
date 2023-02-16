@@ -1,5 +1,8 @@
 
 #include "dwm.h"
+#include "client.h"
+#include "monitor.h"
+#include "config.h"
 
 
 

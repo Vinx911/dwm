@@ -1,5 +1,9 @@
 
 #include "dwm.h"
+#include "bar.h"
+#include "systray.h"
+#include "window.h"
+#include "config.h"
 
 /**
  * 绘制状态栏
@@ -34,7 +38,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
             if (!isCode) {
                 isCode  = 1;
                 text[i] = '\0';
-                w += TEXTW(text) - lrpad;
+                w += TEXTW(text) - text_lr_pad;
                 text[i] = '^';
                 if (text[++i] == 'f') {
                     w += atoi(text + ++i);
@@ -48,7 +52,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
     }
 
     if (!isCode) {
-        w += TEXTW(text) - lrpad;
+        w += TEXTW(text) - text_lr_pad;
     } else {
         isCode = 0;
     }
@@ -71,7 +75,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
             isCode = 1;
 
             text[i] = '\0';
-            w       = TEXTW(text) - lrpad;
+            w       = TEXTW(text) - text_lr_pad;
             drw_text(drw, x, 0, w, bar_height, 0, text, 0);
             width += w;
 
@@ -136,7 +140,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
     }
 
     if (!isCode) {
-        w = TEXTW(text) - lrpad;
+        w = TEXTW(text) - text_lr_pad;
         drw_text(drw, x, 0, w, bar_height, 0, text, 0);
         width += w;
     }
@@ -213,7 +217,7 @@ void click_status_bar(const Arg *arg)
             memset(text, '\0', sizeof(text));
             strncpy(text, status_text + offset, limit);
             offset += --limit;
-            status_w += TEXTW(text) - lrpad;
+            status_w += TEXTW(text) - text_lr_pad;
             if (status_w > arg->i)
                 break;
         }

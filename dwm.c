@@ -18,6 +18,16 @@
  */
 
 #include "dwm.h"
+#include "layout.h"
+#include "tag.h"
+#include "window.h"
+#include "monitor.h"
+#include "client.h"
+#include "bar.h"
+#include "button_press.h"
+#include "status_bar.h"
+#include "systray.h"
+#include "config.h"
 
 /* variables */
 const char autostartblocksh[] = "autostart_blocking.sh";
@@ -33,7 +43,7 @@ int        bar_height;                          /* bar 高度 */
 int        tag_bar_width;                       /* 标签栏宽度 */
 int        lt_symbol_width;                     /* 布局符号宽度 */
 int        statsu_bar_width;                    /* 状态栏宽度 */
-int        lrpad;                               /* 文本左右填充的总和 */
+int        text_lr_pad;                         /* 文本左右填充的总和 */
 int        vp;                                  /* vertical padding for bar */
 int        sp;                                  /* side padding for bar */
 int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -73,18 +83,8 @@ Visual  *visual;      /* 视觉 */
 int      depth;       /* 颜色位深 */
 Colormap cmap;        /* 颜色映射 */
 
-/* configuration, allows nested code to access above variables */
-// #include "config.h"
-
-
-
 static unsigned int scratchtag = 1 << TAGS_COUNT; /* 便签簿标签 */
 
-/* compile-time check if all tags fit into an unsigned int bit array. */
-// struct NumTags
-// {
-//     char limitexceeded[TAGS_COUNT > 31 ? -1 : 1];
-// };
 
 /* function implementations */
 /**
@@ -173,24 +173,6 @@ void applyrules(Client *c)
     c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
 }
 
-
-/**
- * 检查是否存在其他窗口管理器
- */
-void check_other_wm(void)
-{
-    // 注册错误处理函数
-    xerrorxlib = XSetErrorHandler(xerrorstart);
-    /* this causes an error if some other window manager is running */
-    /* 如果其他一些窗口管理器正在运行会导致错误 */
-    XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureRedirectMask);
-
-    // 刷新输出缓冲区并等待处理完成
-    XSync(dpy, False);
-    XSetErrorHandler(xerror);
-    XSync(dpy, False);
-}
-
 /**
  * 清除资源
  */
@@ -228,7 +210,6 @@ void cleanup(void)
     XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
     XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 }
-
 
 /**
  * 客户端消息
@@ -273,7 +254,6 @@ void clientmessage(XEvent *e)
         pointerfocuswin(c);
     }
 }
-
 
 /**
  * 配置通知
@@ -381,9 +361,6 @@ void destroynotify(XEvent *e)
         update_systray(1);
     }
 }
-
-
-
 
 /**
  * 进入通知
@@ -557,8 +534,6 @@ void focusstack(int inc, int hid)
     }
 }
 
-
-
 /**
  * 获取根点
  */
@@ -620,7 +595,6 @@ void grabkeys(void)
     }
 }
 
-
 /**
  * 增加/减少主窗口个数
  */
@@ -635,7 +609,6 @@ void incnmaster(const Arg *arg)
     select_monitor->nmaster = select_monitor->pertag->layout[select_monitor->pertag->curtag].nmasters = MAX(nmaster, 1);
     arrange(select_monitor);
 }
-
 
 /**
  * 按键按下事件
@@ -654,7 +627,6 @@ void keypress(XEvent *e)
         }
     }
 }
-
 
 /**
  * 管理窗口
@@ -772,7 +744,6 @@ void maprequest(XEvent *e)
     }
 }
 
-
 /**
  * 移动通知
  */
@@ -792,8 +763,6 @@ void motionnotify(XEvent *e)
     }
     mon = m;
 }
-
-
 
 void pointerfocuswin(Client *c)
 {
@@ -905,7 +874,6 @@ void quit(const Arg *arg)
     }
 }
 
-
 /**
  * 调整大小请求
  */
@@ -919,8 +887,6 @@ void resizerequest(XEvent *e)
         update_systray(1);
     }
 }
-
-
 
 /**
  * 主循环
@@ -1049,7 +1015,6 @@ void scan(void)
     }
 }
 
-
 /**
  * 发送事件
  */
@@ -1098,7 +1063,6 @@ void setgaps(const Arg *arg)
     arrange(select_monitor);
 }
 
-
 /**
  * 设置主窗口尺寸因子
  */
@@ -1119,108 +1083,6 @@ void setmfact(const Arg *arg)
 }
 
 /**
- * 初始化
- */
-void setup(void)
-{
-    int                  i;
-    XSetWindowAttributes wa;
-    Atom                 utf8string;
-
-    /* 立即清理任何僵尸进程 */
-    sigchld(0);
-
-    /* init screen */
-    screen        = DefaultScreen(dpy);
-    screen_width  = DisplayWidth(dpy, screen);
-    screen_height = DisplayHeight(dpy, screen);
-    root          = RootWindow(dpy, screen);
-
-    xinitvisual();
-    drw = drw_create(dpy, screen, root, screen_width, screen_height, visual, depth, cmap);
-
-    // 字符集载入
-    if (!drw_fontset_create(drw, fonts, fonts_count())) {
-        die("no fonts could be loaded.");
-    }
-
-    lrpad      = drw->fonts->h;
-    bar_height = drw->fonts->h + userbarheight;
-    updategeom();
-    sp = sidepad;
-    vp = (topbar == 1) ? vertpad : -vertpad;
-
-    /* init atoms */
-    utf8string          = XInternAtom(dpy, "UTF8_STRING", False);
-    wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
-    wmatom[WMDelete]    = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-    wmatom[WMState]     = XInternAtom(dpy, "WM_STATE", False);
-    wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
-
-    netatom[NetActiveWindow]              = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-    netatom[NetSupported]                 = XInternAtom(dpy, "_NET_SUPPORTED", False);
-    netatom[NetSystemTray]                = XInternAtom(dpy, "_NET_SYSTEM_TRAY_S0", False);
-    netatom[NetSystemTrayOP]              = XInternAtom(dpy, "_NET_SYSTEM_TRAY_OPCODE", False);
-    netatom[NetSystemTrayOrientation]     = XInternAtom(dpy, "_NET_SYSTEM_TRAY_ORIENTATION", False);
-    netatom[NetSystemTrayOrientationHorz] = XInternAtom(dpy, "_NET_SYSTEM_TRAY_ORIENTATION_HORZ", False);
-    netatom[NetSystemTrayVisual]          = XInternAtom(dpy, "_NET_SYSTEM_TRAY_VISUAL", False);
-    netatom[NetWMName]                    = XInternAtom(dpy, "_NET_WM_NAME", False);
-    netatom[NetWMIcon]                    = XInternAtom(dpy, "_NET_WM_ICON", False);
-    netatom[NetWMState]                   = XInternAtom(dpy, "_NET_WM_STATE", False);
-    netatom[NetWMCheck]                   = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-    netatom[NetWMFullscreen]              = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    netatom[NetWMWindowType]              = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-    netatom[NetWMWindowTypeDock]          = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    netatom[NetWMWindowTypeDialog]        = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    netatom[NetClientList]                = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
-
-    xatom[Manager]    = XInternAtom(dpy, "MANAGER", False);
-    xatom[Xembed]     = XInternAtom(dpy, "_XEMBED", False);
-    xatom[XembedInfo] = XInternAtom(dpy, "_XEMBED_INFO", False);
-
-    /* init 光标 */
-    cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
-    cursor[CurResize] = drw_cur_create(drw, XC_sizing);
-    cursor[CurMove]   = drw_cur_create(drw, XC_fleur);
-
-    /* init appearance */
-    scheme                 = ecalloc(colors_count() + 1, sizeof(Clr *));
-    scheme[colors_count()] = drw_scm_create(drw, colors[0], alphas[0], 3);
-    for (i = 0; i < colors_count(); i++) {
-        scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
-    }
-
-    /* 初始化系统托盘 */
-    if (show_systray) {
-        update_systray(0);
-    }
-
-    /* init bars */
-    updatebars();
-    update_status();
-    updatebarpos(select_monitor);
-
-    /* supporting window for NetWMCheck */
-    wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
-    XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *)&wmcheckwin,
-                    1);
-    XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8, PropModeReplace, (unsigned char *)"dwm", 3);
-    XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *)&wmcheckwin, 1);
-    /* EWMH support per view */
-    XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32, PropModeReplace, (unsigned char *)netatom, NetLast);
-    XDeleteProperty(dpy, root, netatom[NetClientList]);
-    /* select events */
-    wa.cursor     = cursor[CurNormal]->cursor;
-    wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask | ButtonPressMask | PointerMotionMask
-                  | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | PropertyChangeMask;
-    XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
-    XSelectInput(dpy, root, wa.event_mask);
-
-    grabkeys();  // 注册组合键
-    focus(NULL);
-}
-
-/**
  * 设置紧急性
  */
 void seturgent(Client *c, int urg)
@@ -1234,17 +1096,6 @@ void seturgent(Client *c, int urg)
     wmh->flags = urg ? (wmh->flags | XUrgencyHint) : (wmh->flags & ~XUrgencyHint);
     XSetWMHints(dpy, c->win, wmh);
     XFree(wmh);
-}
-
-/**
- * 立即清理僵尸进程
- */
-void sigchld(int unused)
-{
-    if (signal(SIGCHLD, sigchld) == SIG_ERR)
-        die("can't install SIGCHLD handler:");
-    while (0 < waitpid(-1, NULL, WNOHANG))
-        ;
 }
 
 /**
@@ -1262,7 +1113,6 @@ void spawn(const Arg *arg)
         die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
     }
 }
-
 
 /**
  * 切换全部浮动
@@ -1301,8 +1151,6 @@ void toggleallfloating(const Arg *arg)
     pointerfocuswin(select_monitor->select);
 }
 
-
-
 /**
  * 切换便签薄
  */
@@ -1328,7 +1176,6 @@ void togglescratch(const Arg *arg)
         spawn(arg);
     }
 }
-
 
 /**
  * 取消焦点
@@ -1397,7 +1244,6 @@ void unmapnotify(XEvent *e)
     }
 }
 
-
 /**
  * 更新数字键盘锁按键掩码
  */
@@ -1417,7 +1263,6 @@ void updatenumlockmask(void)
     }
     XFreeModifiermap(modmap);
 }
-
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
  * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
@@ -1452,8 +1297,55 @@ int xerrorstart(Display *dpy, XErrorEvent *ee)
     return -1;
 }
 
+/**
+ * 放大,提升到栈顶
+ */
+void zoom(const Arg *arg)
+{
+    Client *c = select_monitor->select;
+
+    if (!select_monitor->lt[select_monitor->sellt]->arrange || !c || c->isfloating) {
+        return;
+    }
+    if (c == nexttiled(select_monitor->clients) && !(c = nexttiled(c->next))) {
+        return;
+    }
+
+    pop(c);
+}
+
+/**
+ * 检查是否存在其他窗口管理器
+ */
+void check_other_wm(void)
+{
+    // 注册错误处理函数
+    xerrorxlib = XSetErrorHandler(xerrorstart);
+    /* this causes an error if some other window manager is running */
+    /* 如果其他一些窗口管理器正在运行会导致错误 */
+    XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureRedirectMask);
+
+    // 刷新输出缓冲区并等待处理完成
+    XSync(dpy, False);
+    XSetErrorHandler(xerror);
+    XSync(dpy, False);
+}
+
+/**
+ * 立即清理僵尸进程
+ */
+void sigchld(int unused)
+{
+    if (signal(SIGCHLD, sigchld) == SIG_ERR) {
+        die("can't install SIGCHLD handler:");
+    }
+    // 等待僵尸进程关闭
+    while (0 < waitpid(-1, NULL, WNOHANG)) {
+    }
+}
+
 /* 初始化视觉 */
-void xinitvisual()
+void xinit_visual()
 {
     XVisualInfo       *infos;
     XRenderPictFormat *fmt;
@@ -1487,20 +1379,102 @@ void xinitvisual()
 }
 
 /**
- * 放大,提升到栈顶
+ * 初始化
  */
-void zoom(const Arg *arg)
+void setup(void)
 {
-    Client *c = select_monitor->select;
+    /* 立即清理任何僵尸进程 */
+    sigchld(0);
 
-    if (!select_monitor->lt[select_monitor->sellt]->arrange || !c || c->isfloating) {
-        return;
-    }
-    if (c == nexttiled(select_monitor->clients) && !(c = nexttiled(c->next))) {
-        return;
+    /* init screen */
+    screen        = DefaultScreen(dpy);
+    screen_width  = DisplayWidth(dpy, screen);
+    screen_height = DisplayHeight(dpy, screen);
+    root          = RootWindow(dpy, screen);
+
+    xinit_visual();
+    drw = drw_create(dpy, screen, root, screen_width, screen_height, visual, depth, cmap);
+
+    // 字符集载入
+    if (!drw_fontset_create(drw, fonts, fonts_count())) {
+        die("no fonts could be loaded.");
     }
 
-    pop(c);
+    text_lr_pad = drw->fonts->h;
+    bar_height  = drw->fonts->h + userbarheight;
+    updategeom();
+    sp = sidepad;
+    vp = (topbar == 1) ? vertpad : -vertpad;
+
+    /* init atoms */
+    Atom utf8string     = XInternAtom(dpy, "UTF8_STRING", False);
+    wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
+    wmatom[WMDelete]    = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+    wmatom[WMState]     = XInternAtom(dpy, "WM_STATE", False);
+    wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
+
+    netatom[NetActiveWindow]              = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
+    netatom[NetSupported]                 = XInternAtom(dpy, "_NET_SUPPORTED", False);
+    netatom[NetSystemTray]                = XInternAtom(dpy, "_NET_SYSTEM_TRAY_S0", False);
+    netatom[NetSystemTrayOP]              = XInternAtom(dpy, "_NET_SYSTEM_TRAY_OPCODE", False);
+    netatom[NetSystemTrayOrientation]     = XInternAtom(dpy, "_NET_SYSTEM_TRAY_ORIENTATION", False);
+    netatom[NetSystemTrayOrientationHorz] = XInternAtom(dpy, "_NET_SYSTEM_TRAY_ORIENTATION_HORZ", False);
+    netatom[NetSystemTrayVisual]          = XInternAtom(dpy, "_NET_SYSTEM_TRAY_VISUAL", False);
+    netatom[NetWMName]                    = XInternAtom(dpy, "_NET_WM_NAME", False);
+    netatom[NetWMIcon]                    = XInternAtom(dpy, "_NET_WM_ICON", False);
+    netatom[NetWMState]                   = XInternAtom(dpy, "_NET_WM_STATE", False);
+    netatom[NetWMCheck]                   = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
+    netatom[NetWMFullscreen]              = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+    netatom[NetWMWindowType]              = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
+    netatom[NetWMWindowTypeDock]          = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    netatom[NetWMWindowTypeDialog]        = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    netatom[NetClientList]                = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+
+    xatom[Manager]    = XInternAtom(dpy, "MANAGER", False);
+    xatom[Xembed]     = XInternAtom(dpy, "_XEMBED", False);
+    xatom[XembedInfo] = XInternAtom(dpy, "_XEMBED_INFO", False);
+
+    /* init 光标 */
+    cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
+    cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+    cursor[CurMove]   = drw_cur_create(drw, XC_fleur);
+
+    /* init appearance */
+    scheme                 = ecalloc(colors_count() + 1, sizeof(Clr *));
+    scheme[colors_count()] = drw_scm_create(drw, colors[0], alphas[0], 3);
+    for (int i = 0; i < colors_count(); i++) {
+        scheme[i] = drw_scm_create(drw, colors[i], alphas[i], 3);
+    }
+
+    /* 初始化系统托盘 */
+    if (show_systray) {
+        update_systray(0);
+    }
+
+    /* init bars */
+    updatebars();
+    update_status();
+    updatebarpos(select_monitor);
+
+    /* supporting window for NetWMCheck */
+    wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
+    XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *)&wmcheckwin,
+                    1);
+    XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8, PropModeReplace, (unsigned char *)"dwm", 3);
+    XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *)&wmcheckwin, 1);
+    /* EWMH support per view */
+    XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32, PropModeReplace, (unsigned char *)netatom, NetLast);
+    XDeleteProperty(dpy, root, netatom[NetClientList]);
+    /* select events */
+    XSetWindowAttributes wa;
+    wa.cursor     = cursor[CurNormal]->cursor;
+    wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask | ButtonPressMask | PointerMotionMask
+                  | EnterWindowMask | LeaveWindowMask | StructureNotifyMask | PropertyChangeMask;
+    XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
+    XSelectInput(dpy, root, wa.event_mask);
+
+    grabkeys();  // 注册组合键
+    focus(NULL);
 }
 
 int main(int argc, char *argv[])
@@ -1537,5 +1511,6 @@ int main(int argc, char *argv[])
 
     cleanup();
     XCloseDisplay(dpy);
+
     return EXIT_SUCCESS;
 }

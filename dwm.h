@@ -32,16 +32,6 @@
 #include "drw.h"
 #include "util.h"
 
-#include "layout.h"
-#include "tag.h"
-#include "window.h"
-#include "monitor.h"
-#include "client.h"
-#include "bar.h"
-#include "button_press.h"
-#include "status_bar.h"
-#include "systray.h"
-
 /* macros */
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)               \
@@ -57,10 +47,7 @@
 #define WIDTH(X) ((X)->w + 2 * (X)->bw)
 #define HEIGHT(X) ((X)->h + 2 * (X)->bw)
 
-#define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + lrpad)
-
-#define TAGMASK ((1 << TAGS_COUNT) - 1)
-#define OPAQUE 0xffU
+#define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + text_lr_pad)
 
 #define SYSTEM_TRAY_REQUEST_DOCK 0
 #define _NET_SYSTEM_TRAY_ORIENTATION_HORZ 0
@@ -118,11 +105,8 @@ void updatenumlockmask(void);
 int  xerror(Display *dpy, XErrorEvent *ee);
 int  xerrordummy(Display *dpy, XErrorEvent *ee);
 int  xerrorstart(Display *dpy, XErrorEvent *ee);
-void xinitvisual();
+void xinit_visual();
 void zoom(const Arg *arg);
-
-
-#include "config.h"
 
 extern const char autostartblocksh[];
 extern const char autostartsh[];
@@ -137,7 +121,7 @@ extern int        bar_height;        /* bar 高度 */
 extern int        tag_bar_width;     /* 标签栏宽度 */
 extern int        lt_symbol_width;   /* 布局符号宽度 */
 extern int        statsu_bar_width;  /* 状态栏宽度 */
-extern int        lrpad;             /* 文本左右填充的总和 */
+extern int        text_lr_pad;             /* 文本左右填充的总和 */
 extern int        vp;                /* vertical padding for bar */
 extern int        sp;                /* side padding for bar */
 extern int (*xerrorxlib)(Display *, XErrorEvent *);

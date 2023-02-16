@@ -1,5 +1,10 @@
 
 #include "dwm.h"
+#include "client.h"
+#include "monitor.h"
+#include "layout.h"
+#include "window.h"
+#include "config.h"
 
 /**
  * 窗口所属的客户端

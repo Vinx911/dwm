@@ -1,5 +1,12 @@
 
 #include "dwm.h"
+#include "bar.h"
+#include "client.h"
+#include "layout.h"
+#include "status_bar.h"
+#include "systray.h"
+#include "window.h"
+#include "config.h"
 
 Systray      *systray            = NULL;
 unsigned long systrayorientation = _NET_SYSTEM_TRAY_ORIENTATION_HORZ;

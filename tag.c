@@ -1,5 +1,10 @@
 
 #include "dwm.h"
+#include "bar.h"
+#include "tag.h"
+#include "layout.h"
+#include "window.h"
+#include "config.h"
 
 
 

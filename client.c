@@ -1,5 +1,12 @@
 
 #include "dwm.h"
+#include "bar.h"
+#include "layout.h"
+#include "client.h"
+#include "layout.h"
+#include "monitor.h"
+#include "window.h"
+#include "config.h"
 
 /**
  * 客户端附加到列表中

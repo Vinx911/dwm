@@ -1,5 +1,10 @@
 
 #include "dwm.h"
+#include "layout.h"
+#include "status_bar.h"
+#include "systray.h"
+#include "window.h"
+#include "config.h"
 
 /**
  * 鼠标按下
