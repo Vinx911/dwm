@@ -101,9 +101,11 @@ void client_enqueue_stack(Client *c)
 void client_pop(Client *c)
 {
     client_detach(c);
-    client_attach(c);
+    c->next         = c->mon->clients;
+    c->mon->clients = c;
     client_focus(c);
     layout_arrange(c->mon);
+    client_pointer_focus_win(c);
 }
 
 /**
@@ -1107,7 +1109,7 @@ void move_by_mouse(const Arg *arg)
 }
 
 /**
- * 放大,提升到栈顶
+ * 将当前聚焦窗口置为主窗口
  */
 void zoom(const Arg *arg)
 {
@@ -1126,96 +1128,10 @@ void zoom(const Arg *arg)
     client_pop(c);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * 切换窗口显示状态
+ * 切换窗口焦点
  */
-void toggle_window(const Arg *arg)
-{
-    Client *c = (Client *)arg->v;
-
-    if (c == NULL) {
-        return;
-    }
-
-    if (c == select_monitor->select) {
-        window_hide(c);
-        client_focus(NULL);
-        layout_arrange(c->mon);
-    } else {
-        if (HIDDEN(c)) {
-            client_show_window(c);
-        }
-        client_focus(c);
-        client_restack(select_monitor);
-    }
-}
-
-/**
- * 切换当前客户端浮动
- */
-void toggle_floating(const Arg *arg)
-{
-    if (!select_monitor->select)
-        return;
-
-    if (select_monitor->select->isfullscreen
-        && !select_monitor->select->isfakefullscreen) /* no support for full_screen windows */
-        return;
-
-    select_monitor->select->isfloating = !select_monitor->select->isfloating || select_monitor->select->isfixed;
-    if (select_monitor->select->isfloating) {
-        // client_resize(select_monitor->select, select_monitor->select->x, select_monitor->select->y,
-        // select_monitor->select->w, select_monitor->select->h, 0);
-        client_resize(select_monitor->select, select_monitor->wx + select_monitor->ww / 6,
-                      select_monitor->wy + select_monitor->wh / 6, select_monitor->ww / 3 * 2,
-                      select_monitor->wh / 3 * 2, 0);
-    }
-    layout_arrange(select_monitor);
-    client_pointer_focus_win(select_monitor->select);
-}
-
-/**
- * 全屏
- */
-Layout *last_layout;
-void    toggle_full_screen(const Arg *arg)
-{
-    if (select_monitor->showbar) {
-        for (last_layout = (Layout *)layouts; last_layout != select_monitor->lt[select_monitor->sellt]; last_layout++)
-            ;
-        set_layout(&((Arg){.v = &layouts[2]}));
-    } else {
-        set_layout(&((Arg){.v = last_layout}));
-    }
-    toggle_bar(arg);
-}
-
-void toggle_fake_full_screen(const Arg *arg)
-{
-    Client *c = select_monitor->select;
-    if (!c)
-        return;
-
-    c->isfakefullscreen = !c->isfakefullscreen;
-
-    client_set_full_screen(c, (!c->isfullscreen || c->isfakefullscreen));
-}
-
-void focusstack(int inc, int hid)
+void focus_stack(int inc, int hid)
 {
     Client *c = NULL, *i;
     // if no client selected AND exclude hidden client; if client selected but
@@ -1270,7 +1186,7 @@ void focusstack(int inc, int hid)
  */
 void focusstackvis(const Arg *arg)
 {
-    focusstack(arg->i, 0);
+    focus_stack(arg->i, 0);
 }
 
 /**
@@ -1278,13 +1194,61 @@ void focusstackvis(const Arg *arg)
  */
 void focusstackhid(const Arg *arg)
 {
-    focusstack(arg->i, 1);
+    focus_stack(arg->i, 1);
+}
+
+/**
+ * 切换窗口显示状态
+ */
+void toggle_window(const Arg *arg)
+{
+    Client *c = (Client *)arg->v;
+
+    if (c == NULL) {
+        return;
+    }
+
+    if (c == select_monitor->select) {
+        window_hide(c);
+        client_focus(NULL);
+        layout_arrange(c->mon);
+    } else {
+        if (HIDDEN(c)) {
+            client_show_window(c);
+        }
+        client_focus(c);
+        client_restack(select_monitor);
+    }
+}
+
+/**
+ * 切换当前客户端浮动
+ */
+void toggle_floating(const Arg *arg)
+{
+    if (!select_monitor->select)
+        return;
+
+    if (select_monitor->select->isfullscreen
+        && !select_monitor->select->isfakefullscreen) /* no support for full_screen windows */
+        return;
+
+    select_monitor->select->isfloating = !select_monitor->select->isfloating || select_monitor->select->isfixed;
+    if (select_monitor->select->isfloating) {
+        // client_resize(select_monitor->select, select_monitor->select->x, select_monitor->select->y,
+        // select_monitor->select->w, select_monitor->select->h, 0);
+        client_resize(select_monitor->select, select_monitor->wx + select_monitor->ww / 6,
+                      select_monitor->wy + select_monitor->wh / 6, select_monitor->ww / 3 * 2,
+                      select_monitor->wh / 3 * 2, 0);
+    }
+    layout_arrange(select_monitor);
+    client_pointer_focus_win(select_monitor->select);
 }
 
 /**
  * 切换全部浮动
  */
-void toggleallfloating(const Arg *arg)
+void toggle_all_floating(const Arg *arg)
 {
     Client *c            = NULL;
     int     somefloating = 0;
@@ -1317,4 +1281,31 @@ void toggleallfloating(const Arg *arg)
         }
     }
     client_pointer_focus_win(select_monitor->select);
+}
+
+/**
+ * 全屏
+ */
+Layout *last_layout;
+void    toggle_full_screen(const Arg *arg)
+{
+    if (select_monitor->showbar) {
+        for (last_layout = (Layout *)layouts; last_layout != select_monitor->lt[select_monitor->sellt]; last_layout++)
+            ;
+        set_layout(&((Arg){.v = &layouts[2]}));
+    } else {
+        set_layout(&((Arg){.v = last_layout}));
+    }
+    toggle_bar(arg);
+}
+
+void toggle_fake_full_screen(const Arg *arg)
+{
+    Client *c = select_monitor->select;
+    if (!c)
+        return;
+
+    c->isfakefullscreen = !c->isfakefullscreen;
+
+    client_set_full_screen(c, (!c->isfullscreen || c->isfakefullscreen));
 }

@@ -204,20 +204,24 @@ void resize_by_mouse(const Arg *arg);
 void move_by_mouse(const Arg *arg);
 
 /**
- * 放大,提升到栈顶
+ * 将当前聚焦窗口置为主窗口
  */
 void zoom(const Arg *arg);
 
-void toggleallfloating(const Arg *arg);
-void toggle_floating(const Arg *arg);
+/**
+ * 切换窗口焦点
+ */
+void focus_stack(int inc, int vis);
 
-
+/**
+ * 切换显示窗口焦点
+ */
 void focusstackvis(const Arg *arg);
+
+/**
+ * 切换隐藏窗口焦点
+ */
 void focusstackhid(const Arg *arg);
-void focusstack(int inc, int vis);
-
-
-
 
 /**
  * 切换窗口显示状态
@@ -230,6 +234,11 @@ void toggle_window(const Arg *arg);
 void toggle_floating(const Arg *arg);
 
 /**
+ * 切换全部客户端浮动
+ */
+void toggle_all_floating(const Arg *arg);
+
+/**
  * 切换全屏
  */
 void toggle_full_screen(const Arg *arg);
@@ -238,7 +247,5 @@ void toggle_full_screen(const Arg *arg);
  * 切换伪全屏
  */
 void toggle_fake_full_screen(const Arg *arg);
-
-
 
 #endif  // CLIENT_H

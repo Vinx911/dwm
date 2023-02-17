@@ -206,7 +206,7 @@ const Key keys[] = {
     { MODKEY,                       XK_grave,  toggle_systray,  {0} },                               /* super ~                   |  切换 托盘栏显示状态 */
     { MODKEY,                       XK_o,      toggle_overview, {0} },                               /* super o                   |  显示所有tag 或 跳转到聚焦窗口的tag */
     { MODKEY,                       XK_w,      toggle_floating, {0} },                               /* super w                   |  开启/关闭 聚焦目标的float模式 */
-    { MODKEY|ControlMask,           XK_w,      toggleallfloating,{0} },                             /* super ctrl w              |  开启/关闭 全部目标的float模式 */
+    { MODKEY|ControlMask,           XK_w,      toggle_all_floating,{0} },                             /* super ctrl w              |  开启/关闭 全部目标的float模式 */
     { MODKEY|ShiftMask,             XK_v,      toggle_bar,      {0} },                               /* super shift v             |  开启/关闭 状态栏 */
     { MODKEY|ControlMask,           XK_m,      toggle_full_screen,     {0} },                               /* super ctrl m              |  开启/关闭 全屏 */
 
