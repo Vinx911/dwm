@@ -70,14 +70,14 @@ Monitor *window_to_monitor(Window w)
  */
 Client *window_to_systray_icon(Window w)
 {
-    Client *i = NULL;
+    Client *icon = NULL;
 
     if (!show_systray || !w) {
-        return i;
+        return icon;
     }
-    for (i = systray->icons; i && i->win != w; i = i->next)
+    for (icon = systray->icons; icon && icon->win != w; icon = icon->next)
         ;
-    return i;
+    return icon;
 }
 
 

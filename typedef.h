@@ -148,6 +148,7 @@ struct Client
     Client      *snext; /* 栈中下一个客户端 */
     Monitor     *mon;   /* 所属监视器 */
     Window       win;   /* 客户端窗口 */
+    
 };
 
 typedef struct

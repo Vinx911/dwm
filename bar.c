@@ -66,10 +66,12 @@ void bar_draw_bar(Monitor *m)
         return;
     }
 
+    drw_rect(drw, 0, 0, m->ww, bar_height, 1, 1);
+
     if (show_systray && m == systray_to_monitor(m)) {
         system_tray_width = systray_get_width();
         drw_setscheme(drw, scheme[SchemeNorm]);
-        drw_rect(drw, m->ww - system_tray_width, 0, system_tray_width, bar_height, 1, 1);
+        drw_rect(drw, m->ww - system_tray_width - 2 * bar_side_padding, 0, system_tray_width, bar_height, 1, 1);
     }
 
     statsu_bar_width = status_bar_draw(m, status_text);
