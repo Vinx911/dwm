@@ -1380,7 +1380,7 @@ void move_window(const Arg *arg)
     case UP:
         tar = -99999;
         top = c->y;
-        ny -= c->mon->wh / 4;
+        ny -= c->mon->wh / 20;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的顶边会穿过tc的底边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1400,7 +1400,7 @@ void move_window(const Arg *arg)
     case DOWN:
         tar    = 99999;
         buttom = c->y + HEIGHT(c);
-        ny += c->mon->wh / 4;
+        ny += c->mon->wh / 20;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的底边会穿过tc的顶边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1420,7 +1420,7 @@ void move_window(const Arg *arg)
     case LEFT:
         tar  = -99999;
         left = c->x;
-        nx -= c->mon->ww / 6;
+        nx -= c->mon->ww / 40;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的左边会穿过tc的右边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1440,7 +1440,7 @@ void move_window(const Arg *arg)
     case RIGHT:
         tar   = 99999;
         right = c->x + WIDTH(c);
-        nx += c->mon->ww / 6;
+        nx += c->mon->ww / 40;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的右边会穿过tc的左边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1485,7 +1485,7 @@ void resize_window(const Arg *arg)
     case H_EXPAND:  // 右
         tar   = 99999;
         right = c->x + WIDTH(c);
-        nw += select_monitor->ww / 16;
+        nw += select_monitor->ww / 40;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的右边会穿过tc的左边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1505,13 +1505,13 @@ void resize_window(const Arg *arg)
         }
         break;
     case H_REDUCE:  // 左
-        nw -= select_monitor->ww / 16;
+        nw -= select_monitor->ww / 40;
         nw = MAX(nw, select_monitor->ww / 10);
         break;
     case V_EXPAND:  // 下
         tar    = -99999;
         buttom = c->y + HEIGHT(c);
-        nh += select_monitor->wh / 8;
+        nh += select_monitor->wh / 80;
         for (tc = c->mon->clients; tc; tc = tc->next) {
             // 若浮动tc c的底边会穿过tc的顶边
             if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
@@ -1531,7 +1531,7 @@ void resize_window(const Arg *arg)
         }
         break;
     case V_REDUCE:  // 上
-        nh -= select_monitor->wh / 8;
+        nh -= select_monitor->wh / 80;
         nh = MAX(nh, select_monitor->wh / 10);
         break;
     }
