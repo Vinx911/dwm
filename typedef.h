@@ -33,7 +33,7 @@ typedef struct
     Window       root;    // 根视窗
     Visual      *visual;  // visual
     unsigned int depth;   // 颜色位深
-    Colormap     cmap;    // 颜色映射
+    Colormap     color_map;    // 颜色映射
     Drawable     drawable;
     Picture      picture;  // 窗口图标
     GC           gc;       // 图形上下文,存储前景色、背景色、线条样式等

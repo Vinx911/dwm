@@ -4,33 +4,26 @@
 /**
  * 更新Bar
  */
-void updatebars(void);
+void bar_update_bars(void);
 
 /**
  * 更新Bar位置
  */
-void updatebarpos(Monitor *m);
+void bar_update_pos(Monitor *m);
 
 /**
- * 更新Bar尺寸
- *
- * @return 是否需要重新绘制
+ * 绘制Bar
  */
-int updategeom(void);
+void bar_draw_bar(Monitor *m);
+
+/**
+ * 绘制Bar
+ */
+void bar_draw_bars(void);
 
 /**
  * 切换bar显示状态
  */
-void togglebar(const Arg *arg);
-
-/**
- * 绘制Bar
- */
-void drawbar(Monitor *m);
-
-/**
- * 绘制Bar
- */
-void drawbars(void);
+void toggle_bar(const Arg *arg);
 
 #endif  // BAR_H

@@ -8,7 +8,7 @@
 /**
  * 绘制状态栏
  */
-int draw_status_bar(Monitor *monitor, char *stext)
+int status_bar_draw(Monitor *monitor, char *stext)
 {
     int   width  = 0, i, w, x, len;
     short isCode = 0;
@@ -20,7 +20,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
     // 系统托盘宽度
     int systray_width = 0;
     if (show_systray && monitor == systray_to_monitor(monitor)) {
-        systray_width = get_systray_width();
+        systray_width = systray_get_width();
     }
 
     len = strlen(stext) + 1;
@@ -59,7 +59,7 @@ int draw_status_bar(Monitor *monitor, char *stext)
 
     text = p;
 
-    x = monitor->ww - w - systray_width - 2 * sp
+    x = monitor->ww - w - systray_width - 2 * bar_side_padding
       - (systray_width ? systrayspadding : 0);  // 托盘存在时 额外多-一个systrayspadding
 
     drw_setscheme(drw, scheme[colors_count()]);
@@ -149,6 +149,21 @@ int draw_status_bar(Monitor *monitor, char *stext)
     free(p);
 
     return width - 2;
+}
+
+/**
+ * 更新状态栏
+ */
+void status_bar_update_status(void)
+{
+    Monitor *m;
+    if (!window_get_text_prop(root_window, XA_WM_NAME, status_text, sizeof(status_text))) {
+        strcpy(status_text, "dwm-" VERSION);
+    }
+
+    for (m = monitor_list; m; m = m->next) {
+        bar_draw_bar(m);
+    }
 }
 
 /**
@@ -246,18 +261,3 @@ void click_status_bar(const Arg *arg)
     system(text);
 }
 
-
-/**
- * 更新状态栏
- */
-void update_status(void)
-{
-    Monitor *m;
-    if (!gettextprop(root, XA_WM_NAME, status_text, sizeof(status_text))) {
-        strcpy(status_text, "dwm-" VERSION);
-    }
-
-    for (m = mons; m; m = m->next) {
-        drawbar(m);
-    }
-}

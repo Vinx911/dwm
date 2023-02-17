@@ -8,10 +8,13 @@
 #include "window.h"
 #include "config.h"
 
+#define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
+#define MOUSEMASK (BUTTONMASK | PointerMotionMask)
+
 /**
  * 客户端附加到列表中
  */
-void attach(Client *c)
+void client_attach(Client *c)
 {
     if (!newclientathead) {
         Client **tc;
@@ -26,18 +29,9 @@ void attach(Client *c)
 }
 
 /**
- * 客户端附加到栈中
- */
-void attachstack(Client *c)
-{
-    c->snext      = c->mon->stack;
-    c->mon->stack = c;
-}
-
-/**
  * 客户端从列表中分离
  */
-void detach(Client *c)
+void client_detach(Client *c)
 {
     Client **tc;
 
@@ -47,9 +41,18 @@ void detach(Client *c)
 }
 
 /**
+ * 客户端附加到栈中
+ */
+void client_attach_stack(Client *c)
+{
+    c->snext      = c->mon->stack;
+    c->mon->stack = c;
+}
+
+/**
  * 客户端从栈中分离
  */
-void detachstack(Client *c)
+void client_detach_stack(Client *c)
 {
     Client **tc, *t;
 
@@ -67,7 +70,7 @@ void detachstack(Client *c)
 /**
  * 客户端入队
  */
-void enqueue(Client *c)
+void client_enqueue(Client *c)
 {
     Client *l;
     for (l = c->mon->clients; l && l->next; l = l->next)
@@ -81,7 +84,7 @@ void enqueue(Client *c)
 /**
  * 客户端栈中入队
  */
-void enqueuestack(Client *c)
+void client_enqueue_stack(Client *c)
 {
     Client *l;
     for (l = c->mon->stack; l && l->snext; l = l->snext)
@@ -92,52 +95,90 @@ void enqueuestack(Client *c)
     }
 }
 
-
 /**
  * 客户端提升到顶部
  */
-void pop(Client *c)
+void client_pop(Client *c)
 {
-    detach(c);
-    attach(c);
-    focus(c);
-    arrange(c->mon);
+    client_detach(c);
+    client_attach(c);
+    client_focus(c);
+    layout_arrange(c->mon);
 }
 
 /**
- * 杀死客户端
+ * 更新客户端列表
  */
-void killclient(const Arg *arg)
+void client_update_list()
 {
-    if (!select_monitor->select) {
+    Client  *c;
+    Monitor *m;
+
+    XDeleteProperty(display, root_window, netatom[NetClientList]);
+    for (m = monitor_list; m; m = m->next) {
+        for (c = m->clients; c; c = c->next) {
+            XChangeProperty(display, root_window, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+                            (unsigned char *)&(c->win), 1);
+        }
+    }
+}
+
+/**
+ * 重新堆叠窗口
+ */
+void client_restack(Monitor *m)
+{
+    Client        *c;
+    XEvent         ev;
+    XWindowChanges wc;
+
+    bar_draw_bar(m);
+    if (!m->select) {
         return;
     }
-    if (!sendevent(select_monitor->select->win, wmatom[WMDelete], NoEventMask, wmatom[WMDelete], CurrentTime, 0, 0, 0))
-    {
-        XGrabServer(dpy);
-        XSetErrorHandler(xerrordummy);
-        XSetCloseDownMode(dpy, DestroyAll);
-        XKillClient(dpy, select_monitor->select->win);
-        XSync(dpy, False);
-        XSetErrorHandler(xerror);
-        XUngrabServer(dpy);
+    if (m->select->isfloating || !m->lt[m->sellt]->arrange) {
+        XRaiseWindow(display, m->select->win);
     }
+    if (m->lt[m->sellt]->arrange) {
+        wc.stack_mode = Below;
+        wc.sibling    = m->bar_window;
+        for (c = m->stack; c; c = c->snext) {
+            if (!c->isfloating && ISVISIBLE(c)) {
+                XConfigureWindow(display, c->win, CWSibling | CWStackMode, &wc);
+                wc.sibling = c->win;
+            }
+        }
+    }
+    XSync(display, False);
+    while (XCheckMaskEvent(display, EnterWindowMask, &ev))
+        ;
 }
 
-/**
- * 重设客户端尺寸
- */
-void resize(Client *c, int x, int y, int w, int h, int interact)
+void client_pointer_focus_win(Client *c)
 {
-    if (applysizehints(c, &x, &y, &w, &h, interact)) {
-        resizeclient(c, x, y, w, h);
+    if (c) {
+        XWarpPointer(display, None, root_window, 0, 0, 0, 0, c->x + c->w / 2, c->y + c->h / 2);
+        client_focus(c);
+    } else {
+        XWarpPointer(display, None, root_window, 0, 0, 0, 0, select_monitor->wx + select_monitor->ww / 3,
+                     select_monitor->wy + select_monitor->wh / 2);
     }
 }
 
 /**
  * 重设客户端尺寸
  */
-void resizeclient(Client *c, int x, int y, int w, int h)
+void client_resize(Client *c, int x, int y, int w, int h, int interact)
+{
+    if (client_apply_size_hints(c, &x, &y, &w, &h, interact)) {
+        client_resize_client(c, x, y, w, h);
+    }
+}
+
+/**
+ * 重设客户端尺寸
+ */
+void client_resize_client(Client *c, int x, int y, int w, int h)
 {
     XWindowChanges wc;
 
@@ -150,153 +191,122 @@ void resizeclient(Client *c, int x, int y, int w, int h)
     c->oldh         = c->h;
     c->h = wc.height = h;
     wc.border_width  = c->bw;
-    if (((nexttiled(c->mon->clients) == c && !nexttiled(c->next)) || &monocle == c->mon->lt[c->mon->sellt]->arrange)
+    if (((client_next_tiled(c->mon->clients) == c && !client_next_tiled(c->next))
+         || &monocle == c->mon->lt[c->mon->sellt]->arrange)
         && !c->isfullscreen && !c->isfloating)
     {
         c->w            = wc.width += c->bw * 2;
         c->h            = wc.height += c->bw * 2;
         wc.border_width = 0;
     }
-    XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-    configure(c);
-    XSync(dpy, False);
+    XConfigureWindow(display, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+    client_configure(c);
+    XSync(display, False);
 }
 
 /**
- * 设置客户端全屏
+ * 应用客户端尺寸hints
  */
-void setfullscreen(Client *c, int fullscreen)
+int client_apply_size_hints(Client *c, int *x, int *y, int *w, int *h, int interact)
 {
-    if (fullscreen && !c->isfullscreen) {
-        XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace,
-                        (unsigned char *)&netatom[NetWMFullscreen], 1);
-        c->isfullscreen = 1;
-        if (c->isfakefullscreen) {
-            resizeclient(c, c->x, c->y, c->w, c->h);
-            return;
-        }
-        c->oldstate   = c->isfloating;
-        c->oldbw      = c->bw;
-        c->bw         = 0;
-        c->isfloating = 1;
-        resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
-        XRaiseWindow(dpy, c->win);
-    } else if (!fullscreen && c->isfullscreen) {
-        XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace, (unsigned char *)0, 0);
-        c->isfullscreen = 0;
-        if (c->isfakefullscreen) {
-            resizeclient(c, c->x, c->y, c->w, c->h);
-            return;
-        }
-        c->isfloating = c->oldstate;
-        c->bw         = c->oldbw;
-        c->x          = c->oldx;
-        c->y          = c->oldy;
-        c->w          = c->oldw;
-        c->h          = c->oldh;
-        resizeclient(c, c->x, c->y, c->w, c->h);
-        arrange(c->mon);
-    }
-}
+    int      baseismin;
+    Monitor *m = c->mon;
 
-/**
- * 显示客户端
- */
-void show(const Arg *arg)
-{
-    if (select_monitor->hidsel) {
-        select_monitor->hidsel = 0;
-    }
-    showwin(select_monitor->select);
-}
-
-/**
- * 显示全部客户端
- */
-void showall(const Arg *arg)
-{
-    Client *c              = NULL;
-    select_monitor->hidsel = 0;
-    for (c = select_monitor->clients; c; c = c->next) {
-        if (ISVISIBLE(c)) {
-            showwin(c);
-        }
-    }
-    if (!select_monitor->select) {
-        for (c = select_monitor->clients; c && !ISVISIBLE(c); c = c->next)
-            ;
-        if (c) {
-            focus(c);
-        }
-    }
-    restack(select_monitor);
-}
-
-/**
- * 显示窗口
- */
-void showwin(Client *c)
-{
-    if (!c || !HIDDEN(c))
-        return;
-
-    XMapWindow(dpy, c->win);
-    setclientstate(c, NormalState);
-    arrange(c->mon);
-}
-
-/**
- * 显示和隐藏窗口列表
- */
-void showhide(Client *c)
-{
-    if (!c) {
-        return;
-    }
-
-    if (ISVISIBLE(c)) {
-        /* show clients top down */
-        XMoveWindow(dpy, c->win, c->x, c->y);
-        if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && (!c->isfullscreen || c->isfakefullscreen)) {
-            resize(c, c->x, c->y, c->w, c->h, 0);
-        }
-        showhide(c->snext);
+    /* set minimum possible */
+    *w = MAX(1, *w);
+    *h = MAX(1, *h);
+    if (interact) {
+        if (*x > screen_width)
+            *x = screen_width - WIDTH(c);
+        if (*y > screen_height)
+            *y = screen_height - HEIGHT(c);
+        if (*x + *w + 2 * c->bw < 0)
+            *x = 0;
+        if (*y + *h + 2 * c->bw < 0)
+            *y = 0;
     } else {
-        /* hide clients bottom up */
-        showhide(c->snext);
-        XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);  // 隐藏窗口移动到屏幕外
+        if (*x >= m->wx + m->ww)
+            *x = m->wx + m->ww - WIDTH(c);
+        if (*y >= m->wy + m->wh)
+            *y = m->wy + m->wh - HEIGHT(c);
+        if (*x + *w + 2 * c->bw <= m->wx)
+            *x = m->wx;
+        if (*y + *h + 2 * c->bw <= m->wy)
+            *y = m->wy;
     }
+    if (*h < bar_height)
+        *h = bar_height;
+    if (*w < bar_height)
+        *w = bar_height;
+    if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
+        if (!c->hintsvalid)
+            client_update_size_hints(c);
+        /* see last two sentences in ICCCM 4.1.2.3 */
+        baseismin = c->basew == c->minw && c->baseh == c->minh;
+        if (!baseismin) { /* temporarily remove base dimensions */
+            *w -= c->basew;
+            *h -= c->baseh;
+        }
+        /* adjust for aspect limits */
+        if (c->mina > 0 && c->maxa > 0) {
+            if (c->maxa < (float)*w / *h)
+                *w = *h * c->maxa + 0.5;
+            else if (c->mina < (float)*h / *w)
+                *h = *w * c->mina + 0.5;
+        }
+        if (baseismin) { /* increment calculation requires this */
+            *w -= c->basew;
+            *h -= c->baseh;
+        }
+        /* adjust for increment value */
+        if (c->incw)
+            *w -= *w % c->incw;
+        if (c->inch)
+            *h -= *h % c->inch;
+        /* restore base dimensions */
+        *w = MAX(*w + c->basew, c->minw);
+        *h = MAX(*h + c->baseh, c->minh);
+        if (c->maxw)
+            *w = MIN(*w, c->maxw);
+        if (c->maxh)
+            *h = MIN(*h, c->maxh);
+    }
+    return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
 }
-
-
 
 /**
- * 更新客户端列表
+ * 更新wm hint
  */
-void updateclientlist()
+void client_update_wm_hints(Client *c)
 {
-    Client  *c;
-    Monitor *m;
+    XWMHints *wmh;
 
-    XDeleteProperty(dpy, root, netatom[NetClientList]);
-    for (m = mons; m; m = m->next) {
-        for (c = m->clients; c; c = c->next) {
-            XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
-                            (unsigned char *)&(c->win), 1);
+    if ((wmh = XGetWMHints(display, c->win))) {
+        if (c == select_monitor->select && wmh->flags & XUrgencyHint) {
+            wmh->flags &= ~XUrgencyHint;
+            XSetWMHints(display, c->win, wmh);
+        } else {
+            c->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
         }
+
+        if (wmh->flags & InputHint) {
+            c->neverfocus = !wmh->input;
+        } else {
+            c->neverfocus = 0;
+        }
+        XFree(wmh);
     }
 }
-
 
 /**
  * 更新客户端尺寸提示
  */
-void updatesizehints(Client *c)
+void client_update_size_hints(Client *c)
 {
     long       msize;
     XSizeHints size;
 
-    if (!XGetWMNormalHints(dpy, c->win, &size, &msize)) {
+    if (!XGetWMNormalHints(display, c->win, &size, &msize)) {
         /* size is uninitialized, ensure that size.flags aren't used */
         size.flags = PSize;
     }
@@ -349,10 +359,10 @@ void updatesizehints(Client *c)
 /**
  * 更新窗口标题
  */
-void updatetitle(Client *c)
+void client_update_title(Client *c)
 {
-    if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name)) {
-        gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
+    if (!window_get_text_prop(c->win, netatom[NetWMName], c->name, sizeof c->name)) {
+        window_get_text_prop(c->win, XA_WM_NAME, c->name, sizeof c->name);
     }
     if (c->name[0] == '\0') { /* hack to mark broken clients */
         strcpy(c->name, broken);
@@ -362,21 +372,19 @@ void updatetitle(Client *c)
 /**
  * 更新窗口图标
  */
-void updateicon(Client *c)
+void client_update_icon(Client *c)
 {
-    freeicon(c);
-    c->icon = geticonprop(c->win, &c->icw, &c->ich);
+    client_free_icon(c);
+    c->icon = window_get_icon_prop(c->win, &c->icw, &c->ich);
 }
-
-
 
 /**
  * 释放窗口图标
  */
-void freeicon(Client *c)
+void client_free_icon(Client *c)
 {
     if (c->icon) {
-        XRenderFreePicture(dpy, c->icon);
+        XRenderFreePicture(display, c->icon);
         c->icon = None;
     }
 }
@@ -384,13 +392,13 @@ void freeicon(Client *c)
 /**
  * 更新窗口类型
  */
-void updatewindowtype(Client *c)
+void client_update_window_type(Client *c)
 {
-    Atom state = getatomprop(c, netatom[NetWMState]);
-    Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
+    Atom state = client_get_atom_prop(c, netatom[NetWMState]);
+    Atom wtype = client_get_atom_prop(c, netatom[NetWMWindowType]);
 
     if (state == netatom[NetWMFullscreen]) {
-        setfullscreen(c, 1);
+        client_set_full_screen(c, 1);
     }
     if (wtype == netatom[NetWMWindowTypeDialog]) {
         c->isfloating = 1;
@@ -398,155 +406,531 @@ void updatewindowtype(Client *c)
 }
 
 /**
- * 更新wm hint
+ * 显示窗口
  */
-void updatewmhints(Client *c)
+void client_show_window(Client *c)
+{
+    if (!c || !HIDDEN(c))
+        return;
+
+    XMapWindow(display, c->win);
+    client_set_state(c, NormalState);
+    layout_arrange(c->mon);
+}
+
+/**
+ * 显示和隐藏窗口列表
+ */
+void client_show_hide(Client *c)
+{
+    if (!c) {
+        return;
+    }
+
+    if (ISVISIBLE(c)) {
+        /* show clients top down */
+        XMoveWindow(display, c->win, c->x, c->y);
+        if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && (!c->isfullscreen || c->isfakefullscreen)) {
+            client_resize(c, c->x, c->y, c->w, c->h, 0);
+        }
+        client_show_hide(c->snext);
+    } else {
+        /* hide clients bottom up */
+        client_show_hide(c->snext);
+        XMoveWindow(display, c->win, WIDTH(c) * -2, c->y);  // 隐藏窗口移动到屏幕外
+    }
+}
+
+/**
+ * 设置客户端全屏
+ */
+void client_set_full_screen(Client *c, int full_screen)
+{
+    if (full_screen && !c->isfullscreen) {
+        XChangeProperty(display, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace,
+                        (unsigned char *)&netatom[NetWMFullscreen], 1);
+        c->isfullscreen = 1;
+        if (c->isfakefullscreen) {
+            client_resize_client(c, c->x, c->y, c->w, c->h);
+            return;
+        }
+        c->oldstate   = c->isfloating;
+        c->oldbw      = c->bw;
+        c->bw         = 0;
+        c->isfloating = 1;
+        client_resize_client(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
+        XRaiseWindow(display, c->win);
+    } else if (!full_screen && c->isfullscreen) {
+        XChangeProperty(display, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace, (unsigned char *)0, 0);
+        c->isfullscreen = 0;
+        if (c->isfakefullscreen) {
+            client_resize_client(c, c->x, c->y, c->w, c->h);
+            return;
+        }
+        c->isfloating = c->oldstate;
+        c->bw         = c->oldbw;
+        c->x          = c->oldx;
+        c->y          = c->oldy;
+        c->w          = c->oldw;
+        c->h          = c->oldh;
+        client_resize_client(c, c->x, c->y, c->w, c->h);
+        layout_arrange(c->mon);
+    }
+}
+
+/**
+ * 配置客户端
+ */
+void client_configure(Client *c)
+{
+    XConfigureEvent ce;
+
+    ce.type              = ConfigureNotify;
+    ce.display           = display;
+    ce.event             = c->win;
+    ce.window            = c->win;
+    ce.x                 = c->x;
+    ce.y                 = c->y;
+    ce.width             = c->w;
+    ce.height            = c->h;
+    ce.border_width      = c->bw;
+    ce.above             = None;
+    ce.override_redirect = False;
+    XSendEvent(display, c->win, False, StructureNotifyMask, (XEvent *)&ce);
+}
+
+/**
+ * 设置紧急性
+ */
+void client_seturgent(Client *c, int urg)
 {
     XWMHints *wmh;
 
-    if ((wmh = XGetWMHints(dpy, c->win))) {
-        if (c == select_monitor->select && wmh->flags & XUrgencyHint) {
-            wmh->flags &= ~XUrgencyHint;
-            XSetWMHints(dpy, c->win, wmh);
-        } else {
-            c->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
-        }
-
-        if (wmh->flags & InputHint) {
-            c->neverfocus = !wmh->input;
-        } else {
-            c->neverfocus = 0;
-        }
-        XFree(wmh);
-    }
-}
-
-
-/**
- * 切换窗口显示状态
- */
-void togglewin(const Arg *arg)
-{
-    Client *c = (Client *)arg->v;
-
-    if (c == NULL) {
+    c->isurgent = urg;
+    if (!(wmh = XGetWMHints(display, c->win))) {
         return;
     }
-
-    if (c == select_monitor->select) {
-        hidewin(c);
-        focus(NULL);
-        arrange(c->mon);
-    } else {
-        if (HIDDEN(c)) {
-            showwin(c);
-        }
-        focus(c);
-        restack(select_monitor);
-    }
-}
-
-
-/**
- * 切换当前客户端浮动
- */
-void togglefloating(const Arg *arg)
-{
-    if (!select_monitor->select)
-        return;
-
-    if (select_monitor->select->isfullscreen
-        && !select_monitor->select->isfakefullscreen) /* no support for fullscreen windows */
-        return;
-
-    select_monitor->select->isfloating = !select_monitor->select->isfloating || select_monitor->select->isfixed;
-    if (select_monitor->select->isfloating) {
-        // resize(select_monitor->select, select_monitor->select->x, select_monitor->select->y,
-        // select_monitor->select->w, select_monitor->select->h, 0);
-        resize(select_monitor->select, select_monitor->wx + select_monitor->ww / 6,
-               select_monitor->wy + select_monitor->wh / 6, select_monitor->ww / 3 * 2, select_monitor->wh / 3 * 2, 0);
-    }
-    arrange(select_monitor);
-    pointerfocuswin(select_monitor->select);
-}
-
-
-/**
- * 全屏
- */
-Layout *last_layout;
-void    fullscreen(const Arg *arg)
-{
-    if (select_monitor->showbar) {
-        for (last_layout = (Layout *)layouts; last_layout != select_monitor->lt[select_monitor->sellt]; last_layout++)
-            ;
-        setlayout(&((Arg){.v = &layouts[2]}));
-    } else {
-        setlayout(&((Arg){.v = last_layout}));
-    }
-    togglebar(arg);
-}
-
-void togglefakefullscreen(const Arg *arg)
-{
-    Client *c = select_monitor->select;
-    if (!c)
-        return;
-
-    c->isfakefullscreen = !c->isfakefullscreen;
-
-    setfullscreen(c, (!c->isfullscreen || c->isfakefullscreen));
-}
-
-
-
-/**
- * 设置客户端焦点
- */
-void setfocus(Client *c)
-{
-    if (!c->neverfocus) {
-        XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-        XChangeProperty(dpy, root, netatom[NetActiveWindow], XA_WINDOW, 32, PropModeReplace, (unsigned char *)&(c->win),
-                        1);
-    }
-    sendevent(c->win, wmatom[WMTakeFocus], NoEventMask, wmatom[WMTakeFocus], CurrentTime, 0, 0, 0);
-}
-
-
-/**
- * 将客户端发送到监视器
- */
-void sendmon(Client *c, Monitor *m)
-{
-    if (c->mon == m)
-        return;
-    unfocus(c, 1);
-    detach(c);
-    detachstack(c);
-    c->mon  = m;
-    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-    attach(c);
-    attachstack(c);
-    focus(NULL);
-    arrange(NULL);
+    wmh->flags = urg ? (wmh->flags | XUrgencyHint) : (wmh->flags & ~XUrgencyHint);
+    XSetWMHints(display, c->win, wmh);
+    XFree(wmh);
 }
 
 /**
  * 设置客户端状态
  */
-void setclientstate(Client *c, long state)
+void client_set_state(Client *c, long state)
 {
     long data[] = {state, None};
 
-    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32, PropModeReplace, (unsigned char *)data, 2);
+    XChangeProperty(display, c->win, wmatom[WMState], wmatom[WMState], 32, PropModeReplace, (unsigned char *)data, 2);
 }
 
+/**
+ * 获取atom属性
+ */
+Atom client_get_atom_prop(Client *c, Atom prop)
+{
+    int            di;
+    unsigned long  dl;
+    unsigned char *p = NULL;
+    Atom           da, atom = None;
+
+    /* FIXME client_get_atom_prop should return the number of items and a pointer to
+     * the stored data instead of this workaround */
+    Atom req = XA_ATOM;
+    if (prop == xatom[XembedInfo])
+        req = xatom[XembedInfo];
+
+    if (XGetWindowProperty(display, c->win, prop, 0L, sizeof atom, False, req, &da, &di, &dl, &dl, &p) == Success && p)
+    {
+        atom = *(Atom *)p;
+        if (da == xatom[XembedInfo] && dl == 2)
+            atom = ((Atom *)p)[1];
+        XFree(p);
+    }
+    return atom;
+}
+
+/**
+ * 注册鼠标按键
+ */
+void client_grab_buttons(Client *c, int focused)
+{
+    update_numlock_mask();
+    {
+        unsigned int i, j;
+        unsigned int modifiers[] = {0, LockMask, numlockmask, numlockmask | LockMask};
+        XUngrabButton(display, AnyButton, AnyModifier, c->win);
+        if (!focused) {
+            XGrabButton(display, AnyButton, AnyModifier, c->win, False, BUTTONMASK, GrabModeSync, GrabModeSync, None,
+                        None);
+        }
+        for (i = 0; i < buttons_count(); i++) {
+            if (buttons[i].click == ClkClientWin) {
+                for (j = 0; j < LENGTH(modifiers); j++) {
+                    XGrabButton(display, buttons[i].button, buttons[i].mask | modifiers[j], c->win, False, BUTTONMASK,
+                                GrabModeAsync, GrabModeSync, None, None);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 设置客户端焦点
+ */
+void client_set_focus(Client *c)
+{
+    if (!c->neverfocus) {
+        XSetInputFocus(display, c->win, RevertToPointerRoot, CurrentTime);
+        XChangeProperty(display, root_window, netatom[NetActiveWindow], XA_WINDOW, 32, PropModeReplace,
+                        (unsigned char *)&(c->win), 1);
+    }
+    window_send_event(c->win, wmatom[WMTakeFocus], NoEventMask, wmatom[WMTakeFocus], CurrentTime, 0, 0, 0);
+}
+
+/**
+ * 焦点位置
+ */
+void client_focus(Client *c)
+{
+    if (!c || !ISVISIBLE(c)) {
+        // 客户端不存在或者不显示时,切换焦点到第一个可显示的客户端
+        for (c = select_monitor->stack; c && (!ISVISIBLE(c) || HIDDEN(c)); c = c->snext)
+            ;
+    }
+
+    if (select_monitor->select && select_monitor->select != c) {
+        client_unfocus(select_monitor->select, 0);
+
+        if (select_monitor->hidsel) {  // 之前焦点窗口为隐藏窗口, 焦点取消后继续隐藏
+            window_hide(select_monitor->select);
+            if (c) {
+                layout_arrange(c->mon);  // 隐藏窗口后重新布局
+            }
+            select_monitor->hidsel = 0;
+        }
+    }
+
+    if (c) {
+        if (c->mon != select_monitor) {
+            select_monitor = c->mon;
+        }
+        if (c->isurgent) {
+            client_seturgent(c, 0);
+        }
+        client_detach_stack(c);
+        client_attach_stack(c);  // 重新附加客户端栈
+        client_grab_buttons(c, 1);
+        XSetWindowBorder(display, c->win, scheme[SchemeSel][ColBorder].pixel);
+        client_set_focus(c);
+    } else {
+        XSetInputFocus(display, root_window, RevertToPointerRoot, CurrentTime);
+        XDeleteProperty(display, root_window, netatom[NetActiveWindow]);
+    }
+
+    select_monitor->select = c;
+    bar_draw_bars();  // 更新Bar
+}
+
+/**
+ * 取消焦点
+ */
+void client_unfocus(Client *c, int client_set_focus)
+{
+    if (!c) {
+        return;
+    }
+    client_grab_buttons(c, 0);
+    XSetWindowBorder(display, c->win, scheme[SchemeNorm][ColBorder].pixel);
+    if (client_set_focus) {
+        XSetInputFocus(display, root_window, RevertToPointerRoot, CurrentTime);
+        XDeleteProperty(display, root_window, netatom[NetActiveWindow]);
+    }
+}
+
+/**
+ * 应用规则
+ */
+void client_apply_rules(Client *c)
+{
+    const char *class, *instance;
+    unsigned int i;
+    const Rule  *r;
+    Monitor     *m;
+    XClassHint   ch = {NULL, NULL};
+
+    /* rule matching */
+    c->isfloating = 0;
+    c->tags       = 0;
+    XGetClassHint(display, c->win, &ch);
+    class    = ch.res_class ? ch.res_class : broken;
+    instance = ch.res_name ? ch.res_name : broken;
+
+    for (i = 0; i < rules_count(); i++) {
+        r = &rules[i];
+        if ((!r->title || strstr(c->name, r->title)) && (!r->class || strstr(class, r->class))
+            && (!r->instance || strstr(instance, r->instance)))
+        {
+            c->isfloating       = r->isfloating;
+            c->isfakefullscreen = r->isfakefullscreen;
+            c->nooverview       = r->nooverview;
+            c->tags |= r->tags;
+            for (m = monitor_list; m && m->num != r->monitor; m = m->next)
+                ;
+            if (m) {
+                c->mon = m;
+            }
+            // 如果设定了floatposition 且未指定xy，设定窗口位置
+            if (r->isfloating && c->x == 0 && c->y == 0) {
+                switch (r->floatposition) {
+                case 1:
+                    c->x = select_monitor->wx + gappx;
+                    c->y = select_monitor->wy + gappx;
+                    break;  // 左上
+                case 2:
+                    c->x = select_monitor->wx + (select_monitor->ww - WIDTH(c)) / 2 - gappx;
+                    c->y = select_monitor->wy + gappx;
+                    break;  // 中上
+                case 3:
+                    c->x = select_monitor->wx + select_monitor->ww - WIDTH(c) - gappx;
+                    c->y = select_monitor->wy + gappx;
+                    break;  // 右上
+                case 4:
+                    c->x = select_monitor->wx + gappx;
+                    c->y = select_monitor->wy + (select_monitor->wh - HEIGHT(c)) / 2;
+                    break;  // 左中
+                case 0:     // 默认0，居中
+                case 5:
+                    c->x = select_monitor->wx + (select_monitor->ww - WIDTH(c)) / 2;
+                    c->y = select_monitor->wy + (select_monitor->wh - HEIGHT(c)) / 2;
+                    break;  // 中中
+                case 6:
+                    c->x = select_monitor->wx + select_monitor->ww - WIDTH(c) - gappx;
+                    c->y = select_monitor->wy + (select_monitor->wh - HEIGHT(c)) / 2;
+                    break;  // 右中
+                case 7:
+                    c->x = select_monitor->wx + gappx;
+                    c->y = select_monitor->wy + select_monitor->wh - HEIGHT(c) - gappx;
+                    break;  // 左下
+                case 8:
+                    c->x = select_monitor->wx + (select_monitor->ww - WIDTH(c)) / 2;
+                    c->y = select_monitor->wy + select_monitor->wh - HEIGHT(c) - gappx;
+                    break;  // 中下
+                case 9:
+                    c->x = select_monitor->wx + select_monitor->ww - WIDTH(c) - gappx;
+                    c->y = select_monitor->wy + select_monitor->wh - HEIGHT(c) - gappx;
+                    break;  // 右下
+                }
+            }
+            break;  // 有且只会匹配一个第一个符合的rule
+        }
+    }
+    if (ch.res_class) {
+        XFree(ch.res_class);
+    }
+    if (ch.res_name) {
+        XFree(ch.res_name);
+    }
+    c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
+}
+
+/**
+ * 管理窗口
+ */
+void client_manage(Window w, XWindowAttributes *wa)
+{
+    Client        *c, *t = NULL;
+    Window         trans = None;
+    XWindowChanges wc;
+
+    c      = ecalloc(1, sizeof(Client));
+    c->win = w;
+    /* geometry */
+    c->x = c->oldx = wa->x;
+    c->y = c->oldy = wa->y;
+    c->w = c->oldw = wa->width;
+    c->h = c->oldh = wa->height;
+    c->oldbw       = wa->border_width;
+
+    client_update_icon(c);
+    client_update_title(c);
+    if (XGetTransientForHint(display, w, &trans) && (t = window_to_client(trans))) {
+        c->mon  = t->mon;
+        c->tags = t->tags;
+    } else {
+        c->mon = select_monitor;
+        client_apply_rules(c);
+    }
+
+    if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww) {
+        c->x = c->mon->wx + c->mon->ww - WIDTH(c);
+    }
+    if (c->y + HEIGHT(c) > c->mon->wy + c->mon->wh) {
+        c->y = c->mon->wy + c->mon->wh - HEIGHT(c);
+    }
+    c->x  = MAX(c->x, c->mon->wx);
+    c->y  = MAX(c->y, c->mon->wy);
+    c->bw = borderpx;
+
+    select_monitor->tagset[select_monitor->seltags] &= ~scratchtag;
+    if (!strcmp(c->name, scratchpadname)) {  // 便笺薄
+        c->mon->tagset[c->mon->seltags] |= c->tags = scratchtag;
+        c->isfloating                              = True;
+        c->nooverview                              = True;
+        c->x                                       = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
+        c->y                                       = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
+    }
+
+    wc.border_width = c->bw;
+    XConfigureWindow(display, w, CWBorderWidth, &wc);
+    XSetWindowBorder(display, w, scheme[SchemeNorm][ColBorder].pixel);
+    client_configure(c); /* propagates border_width, if size doesn't change */
+    client_update_window_type(c);
+    client_update_size_hints(c);
+    client_update_wm_hints(c);
+    XSelectInput(display, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
+    client_grab_buttons(c, 0);
+    if (!c->isfloating) {
+        c->isfloating = c->oldstate = trans != None || c->isfixed;
+    }
+    if (c->isfloating) {
+        XRaiseWindow(display, c->win);
+    }
+    client_attach(c);
+    client_attach_stack(c);
+    XChangeProperty(display, root_window, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
+                    (unsigned char *)&(c->win), 1);
+    XMoveResizeWindow(display, c->win, c->x + 2 * screen_width, c->y, c->w, c->h); /* some windows require this */
+    if (!HIDDEN(c)) {
+        client_set_state(c, NormalState);
+    }
+    if (c->mon == select_monitor) {
+        client_unfocus(select_monitor->select, 0);
+    }
+    c->mon->select = c;
+    layout_arrange(c->mon);
+    if (!HIDDEN(c)) {
+        XMapWindow(display, c->win);
+    }
+    client_focus(NULL);
+}
+
+/**
+ * 不再管理窗口
+ */
+void client_unmanage(Client *c, int destroyed)
+{
+    Monitor       *m = c->mon;
+    XWindowChanges wc;
+
+    client_detach(c);
+    client_detach_stack(c);
+    client_free_icon(c);
+    if (!destroyed) {
+        wc.border_width = c->oldbw;
+        XGrabServer(display); /* avoid race conditions */
+        XSetErrorHandler(xerrordummy);
+        XSelectInput(display, c->win, NoEventMask);
+        XConfigureWindow(display, c->win, CWBorderWidth, &wc); /* restore border */
+        XUngrabButton(display, AnyButton, AnyModifier, c->win);
+        client_set_state(c, WithdrawnState);
+        XSync(display, False);
+        XSetErrorHandler(xerror);
+        XUngrabServer(display);
+    }
+    free(c);
+    client_focus(NULL);
+    client_update_list();
+    layout_arrange(m);
+}
+
+/**
+ * 将客户端发送到监视器
+ */
+void client_send_to_monitor(Client *c, Monitor *m)
+{
+    if (c->mon == m)
+        return;
+    client_unfocus(c, 1);
+    client_detach(c);
+    client_detach_stack(c);
+    c->mon  = m;
+    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+    client_attach(c);
+    client_attach_stack(c);
+    client_focus(NULL);
+    layout_arrange(NULL);
+}
+
+/**
+ * 下一个平铺的客户端
+ */
+Client *client_next_tiled(Client *c)
+{
+    for (; c && (c->isfloating || !ISVISIBLE(c) || HIDDEN(c)); c = c->next)
+        ;
+    return c;
+}
+
+/**
+ * 显示客户端
+ */
+void show_client(const Arg *arg)
+{
+    if (select_monitor->hidsel) {
+        select_monitor->hidsel = 0;
+    }
+    client_show_window(select_monitor->select);
+}
+
+/**
+ * 显示全部客户端
+ */
+void show_all_client(const Arg *arg)
+{
+    Client *c              = NULL;
+    select_monitor->hidsel = 0;
+    for (c = select_monitor->clients; c; c = c->next) {
+        if (ISVISIBLE(c)) {
+            client_show_window(c);
+        }
+    }
+    if (!select_monitor->select) {
+        for (c = select_monitor->clients; c && !ISVISIBLE(c); c = c->next)
+            ;
+        if (c) {
+            client_focus(c);
+        }
+    }
+    client_restack(select_monitor);
+}
+
+/**
+ * 杀死客户端
+ */
+void kill_client(const Arg *arg)
+{
+    if (!select_monitor->select) {
+        return;
+    }
+    if (!window_send_event(select_monitor->select->win, wmatom[WMDelete], NoEventMask, wmatom[WMDelete], CurrentTime, 0,
+                           0, 0))
+    {
+        XGrabServer(display);
+        XSetErrorHandler(xerrordummy);
+        XSetCloseDownMode(display, DestroyAll);
+        XKillClient(display, select_monitor->select->win);
+        XSync(display, False);
+        XSetErrorHandler(xerror);
+        XUngrabServer(display);
+    }
+}
 
 /**
  * 旋转窗口栈
  */
-void rotatestack(const Arg *arg)
+void rotate_client_stack(const Arg *arg)
 {
     Client *c = NULL, *f;
 
@@ -555,35 +939,35 @@ void rotatestack(const Arg *arg)
     }
     f = select_monitor->select;
     if (arg->i > 0) {
-        for (c = nexttiled(select_monitor->clients); c && nexttiled(c->next); c = nexttiled(c->next))
+        for (c = client_next_tiled(select_monitor->clients); c && client_next_tiled(c->next);
+             c = client_next_tiled(c->next))
             ;
         if (c) {
-            detach(c);
-            attach(c);
-            detachstack(c);
-            attachstack(c);
+            client_detach(c);
+            client_attach(c);
+            client_detach_stack(c);
+            client_attach_stack(c);
         }
     } else {
-        if ((c = nexttiled(select_monitor->clients))) {
-            detach(c);
-            enqueue(c);
-            detachstack(c);
-            enqueuestack(c);
+        if ((c = client_next_tiled(select_monitor->clients))) {
+            client_detach(c);
+            client_enqueue(c);
+            client_detach_stack(c);
+            client_enqueue_stack(c);
         }
     }
     if (c) {
-        arrange(select_monitor);
-        // unfocus(f, 1);
-        focus(f);
-        restack(select_monitor);
+        layout_arrange(select_monitor);
+        // client_unfocus(f, 1);
+        client_focus(f);
+        client_restack(select_monitor);
     }
 }
-
 
 /**
  * 鼠标调整窗口大小
  */
-void resizemouse(const Arg *arg)
+void resize_by_mouse(const Arg *arg)
 {
     int      ocx, ocy, nw, nh;
     Client  *c;
@@ -594,21 +978,21 @@ void resizemouse(const Arg *arg)
     if (!(c = select_monitor->select)) {
         return;
     }
-    if (c->isfullscreen && !c->isfakefullscreen) { /* no support resizing fullscreen windows by mouse */
+    if (c->isfullscreen && !c->isfakefullscreen) { /* no support resizing full_screen windows by mouse */
         return;
     }
-    restack(select_monitor);
+    client_restack(select_monitor);
     ocx = c->x;
     ocy = c->y;
-    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync, None, cursor[CurResize]->cursor,
-                     CurrentTime)
+    if (XGrabPointer(display, root_window, False, MOUSEMASK, GrabModeAsync, GrabModeAsync, None,
+                     cursor[CurResize]->cursor, CurrentTime)
         != GrabSuccess)
     {
         return;
     }
-    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+    XWarpPointer(display, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
     do {
-        XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
+        XMaskEvent(display, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
         switch (ev.type) {
         case ConfigureRequest:
         case Expose:
@@ -628,42 +1012,30 @@ void resizemouse(const Arg *arg)
                 if (!c->isfloating && select_monitor->lt[select_monitor->sellt]->arrange
                     && (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
                 {
-                    togglefloating(NULL);
+                    toggle_floating(NULL);
                 }
             }
             if (!select_monitor->lt[select_monitor->sellt]->arrange || c->isfloating) {
-                resize(c, c->x, c->y, nw, nh, 1);
+                client_resize(c, c->x, c->y, nw, nh, 1);
             }
             break;
         }
     } while (ev.type != ButtonRelease);
-    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
-    XUngrabPointer(dpy, CurrentTime);
-    while (XCheckMaskEvent(dpy, EnterWindowMask, &ev))
+    XWarpPointer(display, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+    XUngrabPointer(display, CurrentTime);
+    while (XCheckMaskEvent(display, EnterWindowMask, &ev))
         ;
-    if ((m = recttomon(c->x, c->y, c->w, c->h)) != select_monitor) {
-        sendmon(c, m);
+    if ((m = monitor_rect_to_monitor(c->x, c->y, c->w, c->h)) != select_monitor) {
+        client_send_to_monitor(c, m);
         select_monitor = m;
-        focus(NULL);
+        client_focus(NULL);
     }
 }
-
-
-/**
- * 下一个平铺的客户端
- */
-Client *nexttiled(Client *c)
-{
-    for (; c && (c->isfloating || !ISVISIBLE(c) || HIDDEN(c)); c = c->next)
-        ;
-    return c;
-}
-
 
 /**
  * 鼠标移动窗口
  */
-void movemouse(const Arg *arg)
+void move_by_mouse(const Arg *arg)
 {
     int      x, y, ocx, ocy, nx, ny;
     Client  *c;
@@ -674,23 +1046,23 @@ void movemouse(const Arg *arg)
     if (!(c = select_monitor->select)) {
         return;
     }
-    if (c->isfullscreen && !c->isfakefullscreen) { /* no support moving fullscreen windows by mouse */
+    if (c->isfullscreen && !c->isfakefullscreen) { /* no support moving full_screen windows by mouse */
         return;
     }
-    restack(select_monitor);
+    client_restack(select_monitor);
     ocx = c->x;
     ocy = c->y;
-    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync, None, cursor[CurMove]->cursor,
-                     CurrentTime)
+    if (XGrabPointer(display, root_window, False, MOUSEMASK, GrabModeAsync, GrabModeAsync, None,
+                     cursor[CurMove]->cursor, CurrentTime)
         != GrabSuccess)
     {
         return;
     }
-    if (!getrootptr(&x, &y)) {
+    if (!window_get_root_ptr(&x, &y)) {
         return;
     }
     do {
-        XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
+        XMaskEvent(display, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
         switch (ev.type) {
         case ConfigureRequest:
         case Expose:
@@ -718,136 +1090,231 @@ void movemouse(const Arg *arg)
             if (!c->isfloating && select_monitor->lt[select_monitor->sellt]->arrange
                 && (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
             {
-                togglefloating(NULL);
+                toggle_floating(NULL);
             }
             if (!select_monitor->lt[select_monitor->sellt]->arrange || c->isfloating) {
-                resize(c, nx, ny, c->w, c->h, 1);
+                client_resize(c, nx, ny, c->w, c->h, 1);
             }
             break;
         }
     } while (ev.type != ButtonRelease);
-    XUngrabPointer(dpy, CurrentTime);
-    if ((m = recttomon(c->x, c->y, c->w, c->h)) != select_monitor) {
-        sendmon(c, m);
+    XUngrabPointer(display, CurrentTime);
+    if ((m = monitor_rect_to_monitor(c->x, c->y, c->w, c->h)) != select_monitor) {
+        client_send_to_monitor(c, m);
         select_monitor = m;
-        focus(NULL);
+        client_focus(NULL);
     }
 }
 
-
-
-
-Atom getatomprop(Client *c, Atom prop)
+/**
+ * 放大,提升到栈顶
+ */
+void zoom(const Arg *arg)
 {
-    int            di;
-    unsigned long  dl;
-    unsigned char *p = NULL;
-    Atom           da, atom = None;
+    Client *c = select_monitor->select;
 
-    /* FIXME getatomprop should return the number of items and a pointer to
-     * the stored data instead of this workaround */
-    Atom req = XA_ATOM;
-    if (prop == xatom[XembedInfo])
-        req = xatom[XembedInfo];
-
-    if (XGetWindowProperty(dpy, c->win, prop, 0L, sizeof atom, False, req, &da, &di, &dl, &dl, &p) == Success && p) {
-        atom = *(Atom *)p;
-        if (da == xatom[XembedInfo] && dl == 2)
-            atom = ((Atom *)p)[1];
-        XFree(p);
+    if (c && (c->isfloating || c->isfullscreen)) {
+        return;
     }
-    return atom;
+
+    if (c == client_next_tiled(select_monitor->clients)) {
+        if (!c || !(c = client_next_tiled(c->next))) {
+            return;
+        }
+    }
+
+    client_pop(c);
 }
 
 
-/**
- * 配置客户端
- */
-void configure(Client *c)
-{
-    XConfigureEvent ce;
 
-    ce.type              = ConfigureNotify;
-    ce.display           = dpy;
-    ce.event             = c->win;
-    ce.window            = c->win;
-    ce.x                 = c->x;
-    ce.y                 = c->y;
-    ce.width             = c->w;
-    ce.height            = c->h;
-    ce.border_width      = c->bw;
-    ce.above             = None;
-    ce.override_redirect = False;
-    XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
-}
+
+
+
+
+
+
+
+
+
+
 
 
 /**
- * 应用客户端尺寸hints
+ * 切换窗口显示状态
  */
-int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+void toggle_window(const Arg *arg)
 {
-    int      baseismin;
-    Monitor *m = c->mon;
+    Client *c = (Client *)arg->v;
 
-    /* set minimum possible */
-    *w = MAX(1, *w);
-    *h = MAX(1, *h);
-    if (interact) {
-        if (*x > screen_width)
-            *x = screen_width - WIDTH(c);
-        if (*y > screen_height)
-            *y = screen_height - HEIGHT(c);
-        if (*x + *w + 2 * c->bw < 0)
-            *x = 0;
-        if (*y + *h + 2 * c->bw < 0)
-            *y = 0;
+    if (c == NULL) {
+        return;
+    }
+
+    if (c == select_monitor->select) {
+        window_hide(c);
+        client_focus(NULL);
+        layout_arrange(c->mon);
     } else {
-        if (*x >= m->wx + m->ww)
-            *x = m->wx + m->ww - WIDTH(c);
-        if (*y >= m->wy + m->wh)
-            *y = m->wy + m->wh - HEIGHT(c);
-        if (*x + *w + 2 * c->bw <= m->wx)
-            *x = m->wx;
-        if (*y + *h + 2 * c->bw <= m->wy)
-            *y = m->wy;
+        if (HIDDEN(c)) {
+            client_show_window(c);
+        }
+        client_focus(c);
+        client_restack(select_monitor);
     }
-    if (*h < bar_height)
-        *h = bar_height;
-    if (*w < bar_height)
-        *w = bar_height;
-    if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
-        if (!c->hintsvalid)
-            updatesizehints(c);
-        /* see last two sentences in ICCCM 4.1.2.3 */
-        baseismin = c->basew == c->minw && c->baseh == c->minh;
-        if (!baseismin) { /* temporarily remove base dimensions */
-            *w -= c->basew;
-            *h -= c->baseh;
-        }
-        /* adjust for aspect limits */
-        if (c->mina > 0 && c->maxa > 0) {
-            if (c->maxa < (float)*w / *h)
-                *w = *h * c->maxa + 0.5;
-            else if (c->mina < (float)*h / *w)
-                *h = *w * c->mina + 0.5;
-        }
-        if (baseismin) { /* increment calculation requires this */
-            *w -= c->basew;
-            *h -= c->baseh;
-        }
-        /* adjust for increment value */
-        if (c->incw)
-            *w -= *w % c->incw;
-        if (c->inch)
-            *h -= *h % c->inch;
-        /* restore base dimensions */
-        *w = MAX(*w + c->basew, c->minw);
-        *h = MAX(*h + c->baseh, c->minh);
-        if (c->maxw)
-            *w = MIN(*w, c->maxw);
-        if (c->maxh)
-            *h = MIN(*h, c->maxh);
+}
+
+/**
+ * 切换当前客户端浮动
+ */
+void toggle_floating(const Arg *arg)
+{
+    if (!select_monitor->select)
+        return;
+
+    if (select_monitor->select->isfullscreen
+        && !select_monitor->select->isfakefullscreen) /* no support for full_screen windows */
+        return;
+
+    select_monitor->select->isfloating = !select_monitor->select->isfloating || select_monitor->select->isfixed;
+    if (select_monitor->select->isfloating) {
+        // client_resize(select_monitor->select, select_monitor->select->x, select_monitor->select->y,
+        // select_monitor->select->w, select_monitor->select->h, 0);
+        client_resize(select_monitor->select, select_monitor->wx + select_monitor->ww / 6,
+                      select_monitor->wy + select_monitor->wh / 6, select_monitor->ww / 3 * 2,
+                      select_monitor->wh / 3 * 2, 0);
     }
-    return *x != c->x || *y != c->y || *w != c->w || *h != c->h;
+    layout_arrange(select_monitor);
+    client_pointer_focus_win(select_monitor->select);
+}
+
+/**
+ * 全屏
+ */
+Layout *last_layout;
+void    toggle_full_screen(const Arg *arg)
+{
+    if (select_monitor->showbar) {
+        for (last_layout = (Layout *)layouts; last_layout != select_monitor->lt[select_monitor->sellt]; last_layout++)
+            ;
+        set_layout(&((Arg){.v = &layouts[2]}));
+    } else {
+        set_layout(&((Arg){.v = last_layout}));
+    }
+    toggle_bar(arg);
+}
+
+void toggle_fake_full_screen(const Arg *arg)
+{
+    Client *c = select_monitor->select;
+    if (!c)
+        return;
+
+    c->isfakefullscreen = !c->isfakefullscreen;
+
+    client_set_full_screen(c, (!c->isfullscreen || c->isfakefullscreen));
+}
+
+void focusstack(int inc, int hid)
+{
+    Client *c = NULL, *i;
+    // if no client selected AND exclude hidden client; if client selected but
+    // fullscreened
+    if ((!select_monitor->select && !hid)
+        || (select_monitor->select && select_monitor->select->isfullscreen && lockfullscreen))
+    {
+        return;
+    }
+    if (!select_monitor->clients) {
+        return;
+    }
+    if (inc > 0) {
+        if (select_monitor->select) {
+            for (c = select_monitor->select->next; c && (!ISVISIBLE(c) || (!hid && HIDDEN(c))); c = c->next)
+                ;
+        }
+        if (!c) {
+            for (c = select_monitor->clients; c && (!ISVISIBLE(c) || (!hid && HIDDEN(c))); c = c->next)
+                ;
+        }
+    } else {
+        if (select_monitor->select) {
+            for (i = select_monitor->clients; i != select_monitor->select; i = i->next) {
+                if (ISVISIBLE(i) && !(!hid && HIDDEN(i))) {
+                    c = i;
+                }
+            }
+        } else {
+            c = select_monitor->clients;
+        }
+        if (!c)
+            for (; i; i = i->next) {
+                if (ISVISIBLE(i) && !(!hid && HIDDEN(i))) {
+                    c = i;
+                }
+            }
+    }
+    if (c) {
+        client_focus(c);
+        client_restack(select_monitor);
+        if (HIDDEN(c)) {
+            client_show_window(c);
+            c->mon->hidsel = 1;
+        }
+        client_pointer_focus_win(c);
+    }
+}
+
+/**
+ * 切换显示窗口焦点
+ */
+void focusstackvis(const Arg *arg)
+{
+    focusstack(arg->i, 0);
+}
+
+/**
+ * 切换隐藏窗口焦点
+ */
+void focusstackhid(const Arg *arg)
+{
+    focusstack(arg->i, 1);
+}
+
+/**
+ * 切换全部浮动
+ */
+void toggleallfloating(const Arg *arg)
+{
+    Client *c            = NULL;
+    int     somefloating = 0;
+
+    if (!select_monitor->select || select_monitor->select->isfullscreen) {
+        return;
+    }
+
+    for (c = select_monitor->clients; c; c = c->next) {
+        if (ISVISIBLE(c) && !HIDDEN(c) && c->isfloating) {
+            somefloating = 1;
+            break;
+        }
+    }
+
+    if (somefloating) {
+        for (c = select_monitor->clients; c; c = c->next) {
+            if (ISVISIBLE(c) && !HIDDEN(c)) {
+                c->isfloating = 0;
+            }
+        }
+        layout_arrange(select_monitor);
+    } else {
+        for (c = select_monitor->clients; c; c = c->next) {
+            if (ISVISIBLE(c) && !HIDDEN(c)) {
+                c->isfloating = 1;
+                client_resize(c, c->x + 2 * snap, c->y + 2 * snap, MAX(c->w - 4 * snap, snap),
+                              MAX(c->h - 4 * snap, snap), 0);
+            }
+        }
+    }
+    client_pointer_focus_win(select_monitor->select);
 }

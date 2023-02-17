@@ -5,7 +5,6 @@ include config.mk
 
 OBJ_DIR := build
 
-# SRC = drw.c dwm.c util.c config.c layout.c tag.c window.c monitor.c client.c bar.c  button_press.c status_bar.c systray.c
 SRC = $(wildcard *.c)
 OBJ = $(patsubst  %.c, $(OBJ_DIR)/%.o, $(notdir $(SRC)))
 
@@ -46,9 +45,9 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -f dwm ${DESTDIR}${PREFIX}/bin
 	chmod 755 ${DESTDIR}${PREFIX}/bin/dwm
-	mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	sed "s/VERSION/${VERSION}/g" < dwm.1 > ${DESTDIR}${MANPREFIX}/man1/dwm.1
-	chmod 644 ${DESTDIR}${MANPREFIX}/man1/dwm.1
+# mkdir -p ${DESTDIR}${MANPREFIX}/man1
+# sed "s/VERSION/${VERSION}/g" < dwm.1 > ${DESTDIR}${MANPREFIX}/man1/dwm.1
+# chmod 644 ${DESTDIR}${MANPREFIX}/man1/dwm.1
 
 uninstall:
 	rm -f ${DESTDIR}${PREFIX}/bin/dwm\

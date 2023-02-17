@@ -2,16 +2,15 @@
 #include "dwm.h"
 #include "bar.h"
 #include "tag.h"
+#include "client.h"
 #include "layout.h"
 #include "window.h"
 #include "config.h"
 
-
-
 /**
  * 显示tag
  */
-void view(const Arg *arg)
+void view_tag(const Arg *arg)
 {
     int          i;
     unsigned int tmptag;
@@ -45,11 +44,11 @@ void view(const Arg *arg)
         select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt ^ 1];
 
     if (select_monitor->showbar != select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars) {
-        togglebar(NULL);
+        toggle_bar(NULL);
     }
 
-    focus(NULL);
-    arrange(select_monitor);
+    client_focus(NULL);
+    layout_arrange(select_monitor);
 
     // 若当前tag无窗口 且附加了v参数 则执行
     if (arg->v) {
@@ -62,11 +61,43 @@ void view(const Arg *arg)
     }
 }
 
+/**
+ * 切换当前客户端tag
+ */
+void move_to_tag(const Arg *arg)
+{
+    if (select_monitor->select && arg->ui & TAGMASK) {
+        select_monitor->select->tags = arg->ui & TAGMASK;
+        client_focus(NULL);
+        layout_arrange(select_monitor);
+        view_tag(&(Arg){.ui = arg->ui});
+    } else {
+        view_tag(arg);
+    }
+}
+
+/**
+ * 切换当前客户端所属tag, 可以添加一个新的tag
+ */
+void append_to_tag(const Arg *arg)
+{
+    unsigned int newtags;
+
+    if (!select_monitor->select) {
+        return;
+    }
+    newtags = select_monitor->select->tags ^ (arg->ui & TAGMASK);
+    if (newtags) {
+        select_monitor->select->tags = newtags;
+        client_focus(NULL);
+        layout_arrange(select_monitor);
+    }
+}
 
 /**
  * 切换tag显示状态
  */
-void toggleview(const Arg *arg)
+void toggle_tag_view(const Arg *arg)
 {
     unsigned int newtagset = select_monitor->tagset[select_monitor->seltags] ^ (arg->ui & TAGMASK);
     int          i;
@@ -97,56 +128,20 @@ void toggleview(const Arg *arg)
             select_monitor->pertag->layout[select_monitor->pertag->curtag].ltidxs[select_monitor->sellt ^ 1];
 
         if (select_monitor->showbar != select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars)
-            togglebar(NULL);
+            toggle_bar(NULL);
 
-        focus(NULL);
-        arrange(select_monitor);
+        client_focus(NULL);
+        layout_arrange(select_monitor);
     }
 }
-
-/**
- * 切换当前客户端所属tag, 可以添加一个新的tag
- */
-void toggletag(const Arg *arg)
-{
-    unsigned int newtags;
-
-    if (!select_monitor->select) {
-        return;
-    }
-    newtags = select_monitor->select->tags ^ (arg->ui & TAGMASK);
-    if (newtags) {
-        select_monitor->select->tags = newtags;
-        focus(NULL);
-        arrange(select_monitor);
-    }
-}
-
-
 
 /**
  * 显示所有tag 或 跳转到聚焦窗口的tag
  */
-void toggleoverview(const Arg *arg)
+void toggle_overview(const Arg *arg)
 {
     uint target = select_monitor->select ? select_monitor->select->tags : select_monitor->seltags;
     select_monitor->is_overview ^= 1;
-    view(&(Arg){.ui = target});
-    pointerfocuswin(select_monitor->select);
-}
-
-
-/**
- * 切换当前客户端tag
- */
-void tag(const Arg *arg)
-{
-    if (select_monitor->select && arg->ui & TAGMASK) {
-        select_monitor->select->tags = arg->ui & TAGMASK;
-        focus(NULL);
-        arrange(select_monitor);
-        view(&(Arg){.ui = arg->ui});
-    } else {
-        view(arg);
-    }
+    view_tag(&(Arg){.ui = target});
+    client_pointer_focus_win(select_monitor->select);
 }

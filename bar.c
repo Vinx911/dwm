@@ -8,183 +8,54 @@
 #include "systray.h"
 #include "config.h"
 
-#ifdef XINERAMA
-static int isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
-{
-    while (n--) {
-        if (unique[n].x_org == info->x_org && unique[n].y_org == info->y_org && unique[n].width == info->width
-            && unique[n].height == info->height)
-        {
-            return 0;
-        }
-    }
-    return 1;
-}
-#endif /* XINERAMA */
-
-/**
- * 更新Bar尺寸
- *
- * @return 是否需要重新绘制
- */
-int updategeom(void)
-{
-    int dirty = 0;
-
-#ifdef XINERAMA
-    if (XineramaIsActive(dpy)) {
-        int                 i, j, n, nn;
-        Client             *c;
-        Monitor            *m;
-        XineramaScreenInfo *info   = XineramaQueryScreens(dpy, &nn);
-        XineramaScreenInfo *unique = NULL;
-
-        for (n = 0, m = mons; m; m = m->next, n++)
-            ;
-        /* only consider unique geometries as separate screens */
-        unique = ecalloc(nn, sizeof(XineramaScreenInfo));
-        for (i = 0, j = 0; i < nn; i++) {
-            if (isuniquegeom(unique, j, &info[i])) {
-                memcpy(&unique[j++], &info[i], sizeof(XineramaScreenInfo));
-            }
-        }
-        XFree(info);
-        nn = j;
-
-        /* new monitors if nn > n */
-        for (i = n; i < nn; i++) {
-            for (m = mons; m && m->next; m = m->next)
-                ;
-            if (m) {
-                m->next = createmon();
-            } else {
-                mons = createmon();
-            }
-        }
-        for (i = 0, m = mons; i < nn && m; m = m->next, i++) {
-            if (i >= n || unique[i].x_org != m->mx || unique[i].y_org != m->my || unique[i].width != m->mw
-                || unique[i].height != m->mh)
-            {
-                dirty  = 1;
-                m->num = i;
-                m->mx = m->wx = unique[i].x_org;
-                m->my = m->wy = unique[i].y_org;
-                m->mw = m->ww = unique[i].width;
-                m->mh = m->wh = unique[i].height;
-                updatebarpos(m);
-            }
-        }
-        /* removed monitors if n > nn */
-        for (i = nn; i < n; i++) {
-            for (m = mons; m && m->next; m = m->next)
-                ;
-            while ((c = m->clients)) {
-                dirty      = 1;
-                m->clients = c->next;
-                detachstack(c);
-                c->mon = mons;
-                attach(c);
-                attachstack(c);
-            }
-            if (m == select_monitor) {
-                select_monitor = mons;
-            }
-            cleanup_monitor(m);
-        }
-        free(unique);
-    } else
-#endif /* XINERAMA */
-    {  /* default monitor setup */
-        if (!mons) {
-            mons = createmon();
-        }
-        if (mons->mw != screen_width || mons->mh != screen_height) {
-            dirty    = 1;
-            mons->mw = mons->ww = screen_width;
-            mons->mh = mons->wh = screen_height;
-            updatebarpos(mons);
-        }
-    }
-    if (dirty) {
-        select_monitor = mons;
-        select_monitor = window_to_monitor(root);
-    }
-    return dirty;
-}
-
-
-/**
- * 更新Bar
- */
-void updatebars(void)
-{
-    Monitor             *m;
-    XSetWindowAttributes wa = {.override_redirect = True,
-                               .background_pixel  = 0,
-                               .border_pixel      = 0,
-                               .colormap          = cmap,
-                               .event_mask        = ButtonPressMask | ExposureMask};
-    XClassHint           ch = {"dwm", "dwm"};
-    for (m = mons; m; m = m->next) {
-        if (m->bar_window) {
-            continue;
-        }
-        m->bar_window = XCreateWindow(dpy, root, m->wx + sp, m->by + vp, m->ww - 2 * sp, bar_height, 0, depth,
-                                      InputOutput, visual,
-                                      CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
-        XDefineCursor(dpy, m->bar_window, cursor[CurNormal]->cursor);
-        if (show_systray && m == systray_to_monitor(m)) {
-            XMapRaised(dpy, systray->win);
-        }
-        XMapRaised(dpy, m->bar_window);
-        XSetClassHint(dpy, m->bar_window, &ch);
-    }
-}
-
 /**
  * 更新Bar位置
  */
-void updatebarpos(Monitor *m)
+void bar_update_pos(Monitor *m)
 {
     m->wy = m->my;
     m->wh = m->mh;
     if (m->showbar) {
         m->wh = m->wh - vertpad - bar_height;
         m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;  // 这里实际上是屏幕尺寸的y坐标
-        m->wy = m->topbar ? m->wy + bar_height + vp : m->wy;  // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
+        m->wy = m->topbar ? m->wy + bar_height + bar_ver_padding : m->wy;  // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
     } else {
-        m->by = -bar_height - vp;  // 不显示, 负值在屏幕外
+        m->by = -bar_height - bar_ver_padding;  // 不显示, 负值在屏幕外
     }
 }
 
 /**
- * 切换bar显示状态
+ * 更新Bar
  */
-void togglebar(const Arg *arg)
+void bar_update_bars(void)
 {
-    select_monitor->showbar = select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars =
-        !select_monitor->showbar;
-    updatebarpos(select_monitor);
-    XMoveResizeWindow(dpy, select_monitor->bar_window, select_monitor->wx + sp, select_monitor->by + vp,
-                      select_monitor->ww - 2 * sp, bar_height);
-    if (show_systray) {
-        XWindowChanges wc;
-        if (!select_monitor->showbar) {
-            wc.y = -bar_height;
-        } else if (select_monitor->showbar) {
-            wc.y = vp;
-            if (!select_monitor->topbar)
-                wc.y = select_monitor->mh - bar_height + vp;
+    Monitor             *m;
+    XSetWindowAttributes wa = {.override_redirect = True,
+                               .background_pixel  = 0,
+                               .border_pixel      = 0,
+                               .colormap          = color_map,
+                               .event_mask        = ButtonPressMask | ExposureMask};
+    XClassHint           ch = {"dwm", "dwm"};
+    for (m = monitor_list; m; m = m->next) {
+        if (m->bar_window) {
+            continue;
         }
-        XConfigureWindow(dpy, systray->win, CWY, &wc);
+        m->bar_window = XCreateWindow(display, root_window, m->wx + bar_side_padding, m->by + bar_ver_padding, m->ww - 2 * bar_side_padding, bar_height, 0, depth,
+                                      InputOutput, visual,
+                                      CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
+        XDefineCursor(display, m->bar_window, cursor[CurNormal]->cursor);
+        if (show_systray && m == systray_to_monitor(m)) {
+            XMapRaised(display, systray->win);
+        }
+        XMapRaised(display, m->bar_window);
+        XSetClassHint(display, m->bar_window, &ch);
     }
-    arrange(select_monitor);
 }
 
 /**
  * 绘制Bar
  */
-void drawbar(Monitor *m)
+void bar_draw_bar(Monitor *m)
 {
     int          x, w, system_tray_width = 0, n = 0, scm;
     unsigned int i, occ = 0, urg = 0;
@@ -196,12 +67,12 @@ void drawbar(Monitor *m)
     }
 
     if (show_systray && m == systray_to_monitor(m)) {
-        system_tray_width = get_systray_width();
+        system_tray_width = systray_get_width();
         drw_setscheme(drw, scheme[SchemeNorm]);
         drw_rect(drw, m->ww - system_tray_width, 0, system_tray_width, bar_height, 1, 1);
     }
 
-    statsu_bar_width = draw_status_bar(m, status_text);
+    statsu_bar_width = status_bar_draw(m, status_text);
 
     for (c = m->clients; c; c = c->next) {
         if (ISVISIBLE(c)) {
@@ -246,7 +117,7 @@ void drawbar(Monitor *m)
     drw_setscheme(drw, scheme[SchemeNorm]);
     x = drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, m->ltsymbol, 0);
 
-    if ((w = m->ww - statsu_bar_width - system_tray_width - x - 2 * sp) > bar_height) {
+    if ((w = m->ww - statsu_bar_width - system_tray_width - x - 2 * bar_side_padding) > bar_height) {
         if (n > 0) {
             int remainder = w % n;
             int tabw      = (1.0 / (double)n) * w + 1;
@@ -291,15 +162,39 @@ void drawbar(Monitor *m)
 /**
  * 绘制Bar
  */
-void drawbars(void)
+void bar_draw_bars(void)
 {
     Monitor *m;
 
-    for (m = mons; m; m = m->next) {
-        drawbar(m);
+    for (m = monitor_list; m; m = m->next) {
+        bar_draw_bar(m);
     }
 
     if (show_systray && !systraypinning) {
-        update_systray(0);
+        systray_update(0);
     }
+}
+
+/**
+ * 切换bar显示状态
+ */
+void toggle_bar(const Arg *arg)
+{
+    select_monitor->showbar = select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars =
+        !select_monitor->showbar;
+    bar_update_pos(select_monitor);
+    XMoveResizeWindow(display, select_monitor->bar_window, select_monitor->wx + bar_side_padding, select_monitor->by + bar_ver_padding,
+                      select_monitor->ww - 2 * bar_side_padding, bar_height);
+    if (show_systray) {
+        XWindowChanges wc;
+        if (!select_monitor->showbar) {
+            wc.y = -bar_height;
+        } else if (select_monitor->showbar) {
+            wc.y = bar_ver_padding;
+            if (!select_monitor->topbar)
+                wc.y = select_monitor->mh - bar_height + bar_ver_padding;
+        }
+        XConfigureWindow(display, systray->win, CWY, &wc);
+    }
+    layout_arrange(select_monitor);
 }
