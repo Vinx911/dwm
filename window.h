@@ -37,6 +37,11 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
 int window_get_root_ptr(int *x, int *y);
 
 /**
+ * 显示窗口
+ */
+void window_show(Client *c);
+
+/**
  * 隐藏客户端
  */
 void window_hide(Client *c);

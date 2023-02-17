@@ -27,13 +27,13 @@ typedef XftColor Clr;
  */
 typedef struct
 {
-    unsigned int w, h;    // 宽，高
-    Display     *dpy;     // 所属显示器
-    int          screen;  // 屏幕号
-    Window       root;    // 根视窗
-    Visual      *visual;  // visual
-    unsigned int depth;   // 颜色位深
-    Colormap     color_map;    // 颜色映射
+    unsigned int w, h;       // 宽，高
+    Display     *dpy;        // 所属显示器
+    int          screen;     // 屏幕号
+    Window       root;       // 根视窗
+    Visual      *visual;     // visual
+    unsigned int depth;      // 颜色位深
+    Colormap     color_map;  // 颜色映射
     Drawable     drawable;
     Picture      picture;  // 窗口图标
     GC           gc;       // 图形上下文,存储前景色、背景色、线条样式等
@@ -98,10 +98,25 @@ enum {
     ClkLtSymbol,
     ClkStatusText,
     ClkWinTitle,
+    ClkBarEmpty,
     ClkClientWin,
     ClkRootWin,
     ClkLast
 }; /* clicks */
+
+enum {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+}; /* movewin */
+
+enum {
+    V_EXPAND,
+    V_REDUCE,
+    H_EXPAND,
+    H_REDUCE
+}; /* resizewins */
 
 typedef struct
 {
@@ -148,7 +163,6 @@ struct Client
     Client      *snext; /* 栈中下一个客户端 */
     Monitor     *mon;   /* 所属监视器 */
     Window       win;   /* 客户端窗口 */
-    
 };
 
 typedef struct

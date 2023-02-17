@@ -81,12 +81,12 @@ void tile(Monitor *m)
             int ry = m->wy + ty;
             int rw = m->ww - mw - (2 * c->bw) - 2 * m->gappx;
             int rh = (m->wh - ty) / (n - i) - m->gappx - (2 * c->bw);
-            if (rh < minclientheight) {
-                rh = minclientheight;
+            if (rh < min_client_height) {
+                rh = min_client_height;
             }
 
             client_resize(c, rx, ry, rw, rh, 0);
-            if (ty + HEIGHT(c) + m->gappx + minclientheight < m->wh) {
+            if (ty + HEIGHT(c) + m->gappx + min_client_height < m->wh) {
                 ty += HEIGHT(c) + m->gappx;
             }
         }
@@ -176,7 +176,7 @@ void magic_grid(Monitor *m)
 
 void overview(Monitor *m)
 {
-    grid(m, overviewgappx);
+    grid(m, overview_gappx);
 }
 
 /**

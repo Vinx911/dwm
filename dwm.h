@@ -6,6 +6,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <errno.h>
@@ -35,11 +36,6 @@
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + text_lr_pad)
 
-extern const char   autostartblocksh[];
-extern const char   autostartsh[];
-extern const char   broken[];          /* 无法获取到窗口标题时显示文本 */
-extern const char   dwmdir[];          /* dwm目录 */
-extern const char   localshare[];      /* .local/share */
 extern char         status_text[2048]; /* 状态栏文本 */
 extern int          screen;            /* 默认屏幕 */
 extern int          screen_width;      /* 默认屏幕的宽 */
@@ -78,6 +74,11 @@ void update_numlock_mask(void);
 
 int xerror(Display *dpy, XErrorEvent *ee);
 int xerrordummy(Display *dpy, XErrorEvent *ee);
+
+/**
+ * 运行app
+ */
+void app_starter(const Arg *arg);
 
 /**
  * 执行命令

@@ -56,7 +56,7 @@ void view_tag(const Arg *arg)
             if (c->tags & arg->ui && !HIDDEN(c))
                 n++;
         if (n == 0) {
-            spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", arg->v, NULL}});
+            app_starter(arg);
         }
     }
 }

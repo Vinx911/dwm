@@ -19,10 +19,10 @@ unsigned int systray_get_width()
     unsigned int w = 0;
     Client      *icon;
     if (show_systray) {
-        for (icon = systray->icons; icon; w += icon->w + systrayspacing, icon = icon->next)
+        for (icon = systray->icons; icon; w += icon->w + systray_spacing, icon = icon->next)
             ;
     }
-    return w ? w + systrayspacing : 0;
+    return w ? w + systray_spacing : 0;
 }
 
 /**
@@ -84,14 +84,14 @@ void systray_update(int update_bar)
         wa.background_pixel = 0;
         XChangeWindowAttributes(display, icon->win, CWBackPixel, &wa);
         XMapRaised(display, icon->win);
-        w += systrayspacing;
+        w += systray_spacing;
         icon->x = w;
         XMoveResizeWindow(display, icon->win, icon->x, (bar_height - icon->h) / 2, icon->w, icon->h);
         w += icon->w;
         if (icon->mon != m)
             icon->mon = m;
     }
-    w = w ? w + systrayspacing : 1;
+    w = w ? w + systray_spacing : 1;
     x -= w;
     XMoveResizeWindow(display, systray->win, x - xpad, m->by + ypad, w, bar_height);
     wc.x          = x - xpad;
@@ -120,28 +120,28 @@ void systray_update(int update_bar)
 void systray_update_icon_geom(Client *icon, int w, int h)
 {
     if (icon) {
-        icon->h = systrayiconsize;
+        icon->h = systray_icon_size;
         if (w == h) {
-            icon->w = systrayiconsize;
-        } else if (h == systrayiconsize) {
+            icon->w = systray_icon_size;
+        } else if (h == systray_icon_size) {
             icon->w = w;
         } else {
-            icon->w = (int)((float)systrayiconsize * ((float)w / (float)h));
+            icon->w = (int)((float)systray_icon_size * ((float)w / (float)h));
         }
 
         client_apply_size_hints(icon, &(icon->x), &(icon->y), &(icon->w), &(icon->h), False);
         /* force icons into the systray dimensions if they don't want to */
-        if (icon->h > systrayiconsize) {
+        if (icon->h > systray_icon_size) {
             if (icon->w == icon->h) {
-                icon->w = systrayiconsize;
+                icon->w = systray_icon_size;
             } else {
-                icon->w = (int)((float)systrayiconsize * ((float)icon->w / (float)icon->h));
+                icon->w = (int)((float)systray_icon_size * ((float)icon->w / (float)icon->h));
             }
-            icon->h = systrayiconsize;
+            icon->h = systray_icon_size;
         }
 
-        if (icon->w > 2 * systrayiconsize) {
-            icon->w = systrayiconsize;
+        if (icon->w > 2 * systray_icon_size) {
+            icon->w = systray_icon_size;
         }
     }
 }
@@ -203,7 +203,7 @@ Monitor *systray_to_monitor(Monitor *m)
 {
     Monitor *t;
     int      i, n;
-    if (!systraypinning) {
+    if (!systray_pinning) {
         if (!m) {
             return select_monitor;
         }
@@ -213,10 +213,10 @@ Monitor *systray_to_monitor(Monitor *m)
     for (n = 1, t = monitor_list; t && t->next; n++, t = t->next)
         ;
 
-    for (i = 1, t = monitor_list; t && t->next && i < systraypinning; i++, t = t->next)
+    for (i = 1, t = monitor_list; t && t->next && i < systray_pinning; i++, t = t->next)
         ;
 
-    if (systraypinningfailfirst && n < systraypinning) {
+    if (systray_pinning_fail_first && n < systray_pinning) {
         return monitor_list;
     }
     return t;

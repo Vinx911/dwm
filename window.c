@@ -171,7 +171,7 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
             }
             if ((sz = w * h) > end - i)
                 break;
-            if ((m = w > h ? w : h) >= winiconsize && (d = m - winiconsize) < bstd) {
+            if ((m = w > h ? w : h) >= win_icon_size && (d = m - win_icon_size) < bstd) {
                 bstd = d;
                 bstp = i;
             }
@@ -184,7 +184,7 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
                 }
                 if ((sz = w * h) > end - i)
                     break;
-                if ((d = winiconsize - (w > h ? w : h)) < bstd) {
+                if ((d = win_icon_size - (w > h ? w : h)) < bstd) {
                     bstd = d;
                     bstp = i;
                 }
@@ -203,13 +203,13 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
 
     uint32_t icw, ich;
     if (w <= h) {
-        ich = winiconsize;
-        icw = w * winiconsize / h;
+        ich = win_icon_size;
+        icw = w * win_icon_size / h;
         if (icw == 0)
             icw = 1;
     } else {
-        icw = winiconsize;
-        ich = h * winiconsize / w;
+        icw = win_icon_size;
+        ich = h * win_icon_size / w;
         if (ich == 0)
             ich = 1;
     }
@@ -224,6 +224,19 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
     XFree(p);
 
     return ret;
+}
+
+/**
+ * 显示窗口
+ */
+void window_show(Client *c)
+{
+    if (!c || !HIDDEN(c))
+        return;
+
+    XMapWindow(display, c->win);
+    client_set_state(c, NormalState);
+    layout_arrange(c->mon);
 }
 
 /**

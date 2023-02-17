@@ -22,7 +22,7 @@ int status_bar_draw(Monitor *monitor, char *stext)
     if (show_systray && monitor == systray_to_monitor(monitor)) {
         systray_width = systray_get_width();
         // 托盘存在时 额外多-一个systrayspadding
-        systray_width += (systray_width ? systrayspadding : 0);
+        systray_width += (systray_width ? systray_padding : 0);
     }
 
     len = strlen(stext) + 1;
@@ -258,6 +258,6 @@ void click_status_bar(const Arg *arg)
     }
 
     memset(text, '\0', sizeof(text));
-    sprintf(text, "%s %s %s &", statusbarscript, signal, button);
+    sprintf(text, "%s %s %s &", status_bar_script, signal, button);
     system(text);
 }

@@ -16,7 +16,7 @@
  */
 void client_attach(Client *c)
 {
-    if (!newclientathead) {
+    if (!new_client_ahead) {
         Client **tc;
         for (tc = &c->mon->clients; *tc; tc = &(*tc)->next)
             ;
@@ -240,7 +240,7 @@ int client_apply_size_hints(Client *c, int *x, int *y, int *w, int *h, int inter
         *h = bar_height;
     if (*w < bar_height)
         *w = bar_height;
-    if (resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
+    if (resize_hints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
         if (!c->hintsvalid)
             client_update_size_hints(c);
         /* see last two sentences in ICCCM 4.1.2.3 */
@@ -405,19 +405,6 @@ void client_update_window_type(Client *c)
     if (wtype == netatom[NetWMWindowTypeDialog]) {
         c->isfloating = 1;
     }
-}
-
-/**
- * 显示窗口
- */
-void client_show_window(Client *c)
-{
-    if (!c || !HIDDEN(c))
-        return;
-
-    XMapWindow(display, c->win);
-    client_set_state(c, NormalState);
-    layout_arrange(c->mon);
 }
 
 /**
@@ -773,7 +760,7 @@ void client_manage(Window w, XWindowAttributes *wa)
     }
     c->x  = MAX(c->x, c->mon->wx);
     c->y  = MAX(c->y, c->mon->wy);
-    c->bw = borderpx;
+    c->bw = border_px;
 
     select_monitor->tagset[select_monitor->seltags] &= ~scratchtag;
     if (!strcmp(c->name, scratchpadname)) {  // 便笺薄
@@ -883,7 +870,7 @@ void show_client(const Arg *arg)
     if (select_monitor->hidsel) {
         select_monitor->hidsel = 0;
     }
-    client_show_window(select_monitor->select);
+    window_show(select_monitor->select);
 }
 
 /**
@@ -895,7 +882,7 @@ void show_all_client(const Arg *arg)
     select_monitor->hidsel = 0;
     for (c = select_monitor->clients; c; c = c->next) {
         if (ISVISIBLE(c)) {
-            client_show_window(c);
+            window_show(c);
         }
     }
     if (!select_monitor->select) {
@@ -927,6 +914,19 @@ void kill_client(const Arg *arg)
         XSetErrorHandler(xerror);
         XUngrabServer(display);
     }
+}
+
+/**
+ * 强制关闭窗口(处理某些情况下无法销毁的窗口)
+ */
+void force_kill_client(const Arg *arg)
+{
+    if (!select_monitor->select) {
+        return;
+    }
+
+    kill_client(arg);
+    client_unmanage(select_monitor->select, 1);
 }
 
 /**
@@ -1137,7 +1137,7 @@ void focus_stack(int inc, int hid)
     // if no client selected AND exclude hidden client; if client selected but
     // fullscreened
     if ((!select_monitor->select && !hid)
-        || (select_monitor->select && select_monitor->select->isfullscreen && lockfullscreen))
+        || (select_monitor->select && select_monitor->select->isfullscreen && lock_full_screen))
     {
         return;
     }
@@ -1174,7 +1174,7 @@ void focus_stack(int inc, int hid)
         client_focus(c);
         client_restack(select_monitor);
         if (HIDDEN(c)) {
-            client_show_window(c);
+            window_show(c);
             c->mon->hidsel = 1;
         }
         client_pointer_focus_win(c);
@@ -1214,7 +1214,7 @@ void toggle_window(const Arg *arg)
         layout_arrange(c->mon);
     } else {
         if (HIDDEN(c)) {
-            client_show_window(c);
+            window_show(c);
         }
         client_focus(c);
         client_restack(select_monitor);
@@ -1308,4 +1308,234 @@ void toggle_fake_full_screen(const Arg *arg)
     c->isfakefullscreen = !c->isfakefullscreen;
 
     client_set_full_screen(c, (!c->isfullscreen || c->isfakefullscreen));
+}
+
+/**
+ * 隐藏其他窗口仅保留该窗口
+ */
+void hide_other_wins(const Arg *arg)
+{
+    Client *c = (Client *)arg->v, *tc = NULL;
+    for (tc = select_monitor->clients; tc; tc = tc->next) {
+        if (tc != c && ISVISIBLE(tc)) {
+            window_hide(tc);
+        }
+    }
+    window_show(c);
+    client_focus(c);
+    layout_arrange(c->mon);
+}
+
+int is_single_win(const Arg *arg)
+{
+    Client *c   = NULL;
+    int     cot = 0;
+
+    for (c = select_monitor->clients; c; c = c->next) {
+        if (ISVISIBLE(c) && !HIDDEN(c))
+            cot++;
+        if (cot > 1)
+            return 0;
+    }
+    return 1;
+}
+
+/**
+ * 切换 只显示一个窗口 / 全部显示
+ */
+void show_only_or_all(const Arg *arg)
+{
+    Client *c;
+    if (is_single_win(NULL) || !select_monitor->select) {
+        for (c = select_monitor->clients; c; c = c->next) {
+            if (ISVISIBLE(c)) {
+                window_show(c);
+            }
+        }
+    } else {
+        hide_other_wins(&(Arg){.v = select_monitor->select});
+    }
+}
+
+/**
+ * 移动窗口
+ */
+void move_window(const Arg *arg)
+{
+    Client *c, *tc;
+    int     nx, ny;
+    int     buttom, top, left, right, tar;
+    c = select_monitor->select;
+    if (!c || c->isfullscreen) {
+        return;
+    }
+
+    if (!c->isfloating) {
+        toggle_floating(NULL);
+    }
+
+    nx = c->x;
+    ny = c->y;
+    switch (arg->ui) {
+    case UP:
+        tar = -99999;
+        top = c->y;
+        ny -= c->mon->wh / 4;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的顶边会穿过tc的底边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->x + WIDTH(c) < tc->x || c->x > tc->x + WIDTH(tc)) {
+                continue;
+            }
+            buttom = tc->y + HEIGHT(tc) + gappx;
+            if (top > buttom && ny < buttom) {
+                tar = MAX(tar, buttom);
+            };
+        }
+        ny = tar == -99999 ? ny : tar;
+        ny = MAX(ny, c->mon->wy + gappx);
+        break;
+    case DOWN:
+        tar    = 99999;
+        buttom = c->y + HEIGHT(c);
+        ny += c->mon->wh / 4;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的底边会穿过tc的顶边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->x + WIDTH(c) < tc->x || c->x > tc->x + WIDTH(tc)) {
+                continue;
+            }
+            top = tc->y - gappx;
+            if (buttom < top && (ny + HEIGHT(c)) > top) {
+                tar = MIN(tar, top - HEIGHT(c));
+            };
+        }
+        ny = tar == 99999 ? ny : tar;
+        ny = MIN(ny, c->mon->wy + c->mon->wh - gappx - HEIGHT(c));
+        break;
+    case LEFT:
+        tar  = -99999;
+        left = c->x;
+        nx -= c->mon->ww / 6;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的左边会穿过tc的右边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->y + HEIGHT(c) < tc->y || c->y > tc->y + HEIGHT(tc)) {
+                continue;
+            }
+            right = tc->x + WIDTH(tc) + gappx;
+            if (left > right && nx < right) {
+                tar = MAX(tar, right);
+            };
+        }
+        nx = tar == -99999 ? nx : tar;
+        nx = MAX(nx, c->mon->wx + gappx);
+        break;
+    case RIGHT:
+        tar   = 99999;
+        right = c->x + WIDTH(c);
+        nx += c->mon->ww / 6;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的右边会穿过tc的左边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->y + HEIGHT(c) < tc->y || c->y > tc->y + HEIGHT(tc)) {
+                continue;
+            }
+            left = tc->x - gappx;
+            if (right < left && (nx + WIDTH(c)) > left) {
+                tar = MIN(tar, left - WIDTH(c));
+            };
+        }
+        nx = tar == 99999 ? nx : tar;
+        nx = MIN(nx, c->mon->wx + c->mon->ww - gappx - WIDTH(c));
+        break;
+    }
+    client_resize(c, nx, ny, c->w, c->h, 1);
+    client_pointer_focus_win(c);
+    client_restack(select_monitor);
+}
+
+
+/**
+ * 调整窗口
+ */
+void resize_window(const Arg *arg)
+{
+    Client *c, *tc;
+    int     nh, nw;
+    int     buttom, top, left, right, tar;
+    c = select_monitor->select;
+    if (!c || c->isfullscreen) {
+        return;
+    }
+    if (!c->isfloating) {
+        toggle_floating(NULL);
+    }
+    nw = c->w;
+    nh = c->h;
+    switch (arg->ui) {
+    case H_EXPAND:  // 右
+        tar   = 99999;
+        right = c->x + WIDTH(c);
+        nw += select_monitor->ww / 16;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的右边会穿过tc的左边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->y + HEIGHT(c) < tc->y || c->y > tc->y + HEIGHT(tc)) {
+                continue;
+            }
+            left = tc->x - gappx;
+            if (right < left && (c->x + nw) > left) {
+                tar = MIN(tar, left - c->x - 2 * c->bw);
+            };
+        }
+        nw = tar == 99999 ? nw : tar;
+        if (c->x + nw + gappx + 2 * c->bw > select_monitor->wx + select_monitor->ww) {
+            nw = select_monitor->wx + select_monitor->ww - c->x - gappx - 2 * c->bw;
+        }
+        break;
+    case H_REDUCE:  // 左
+        nw -= select_monitor->ww / 16;
+        nw = MAX(nw, select_monitor->ww / 10);
+        break;
+    case V_EXPAND:  // 下
+        tar    = -99999;
+        buttom = c->y + HEIGHT(c);
+        nh += select_monitor->wh / 8;
+        for (tc = c->mon->clients; tc; tc = tc->next) {
+            // 若浮动tc c的底边会穿过tc的顶边
+            if (!ISVISIBLE(tc) || !tc->isfloating || tc == c) {
+                continue;
+            }
+            if (c->x + WIDTH(c) < tc->x || c->x > tc->x + WIDTH(tc)) {
+                continue;
+            }
+            top = tc->y - gappx;
+            if (buttom < top && (c->y + nh) > top) {
+                tar = MAX(tar, top - c->y - 2 * c->bw);
+            };
+        }
+        nh = tar == -99999 ? nh : tar;
+        if (c->y + nh + gappx + 2 * c->bw > select_monitor->wy + select_monitor->wh) {
+            nh = select_monitor->wy + select_monitor->wh - c->y - gappx - 2 * c->bw;
+        }
+        break;
+    case V_REDUCE:  // 上
+        nh -= select_monitor->wh / 8;
+        nh = MAX(nh, select_monitor->wh / 10);
+        break;
+    }
+    client_resize(c, c->x, c->y, nw, nh, 1);
+    XWarpPointer(display, None, root_window, 0, 0, 0, 0, c->x + c->w - 2 * c->bw, c->y + c->h - 2 * c->bw);
+    client_restack(select_monitor);
 }

@@ -99,11 +99,6 @@ void client_free_icon(Client *c);
 void client_update_window_type(Client *c);
 
 /**
- * 显示窗口
- */
-void client_show_window(Client *c);
-
-/**
  * 显示和隐藏窗口列表
  */
 void client_show_hide(Client *c);
@@ -189,6 +184,11 @@ void show_all_client(const Arg *arg);
 void kill_client(const Arg *arg);
 
 /**
+ * 强制关闭窗口(处理某些情况下无法销毁的窗口)
+ */
+void force_kill_client(const Arg *arg);
+
+/**
  * 旋转窗口栈
  */
 void rotate_client_stack(const Arg *arg);
@@ -247,5 +247,25 @@ void toggle_full_screen(const Arg *arg);
  * 切换伪全屏
  */
 void toggle_fake_full_screen(const Arg *arg);
+
+/**
+ * 隐藏其他窗口仅保留该窗口
+ */
+void hide_other_wins(const Arg *arg);
+
+/**
+ * 切换 只显示一个窗口 / 全部显示
+ */
+void show_only_or_all(const Arg *arg);
+
+/**
+ * 移动窗口
+ */
+void move_window(const Arg *arg);
+
+/**
+ * 调整窗口
+ */
+void resize_window(const Arg *arg);
 
 #endif  // CLIENT_H

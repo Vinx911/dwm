@@ -33,11 +33,7 @@
      & (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask))
 
 /* variables */
-const char   autostartblocksh[] = "autostart_blocking.sh";
-const char   autostartsh[]      = "autostart.sh";
-const char   broken[]           = "broken";       /* 无法获取到窗口标题时显示文本 */
-const char   dwmdir[]           = "dwm";          /* dwm目录 */
-const char   localshare[]       = ".local/share"; /* .local/share */
+char        *dwm_script_path    = NULL;           /* dwm脚本路径 */
 char         status_text[2048];                   /* 状态栏文本 */
 int          screen;                              /* 默认屏幕 */
 int          screen_width;                        /* 默认屏幕的宽 */
@@ -156,7 +152,7 @@ void button_press(XEvent *e)
         int systray_width = systray_get_width();
         if (select_monitor == systray_to_monitor(select_monitor)) {
             if (systray_width != 0) {
-                systray_width = systray_width + systraypinning + 2;
+                systray_width = systray_width + systray_pinning + 2;
             }
         }
 
@@ -175,6 +171,8 @@ void button_press(XEvent *e)
             arg.i  = ev->x - status_bar_x;
             arg.ui = ev->button;  // 1 => L，2 => M，3 => R, 5 => U, 6 => D
         } else {
+            click = ClkBarEmpty;
+            
             x += lt_symbol_width;
             Client *client = monitor->clients;
 
@@ -755,7 +753,7 @@ void setup(void)
     }
 
     text_lr_pad = drw->fonts->h;
-    bar_height  = drw->fonts->h + userbarheight;
+    bar_height  = drw->fonts->h + user_bar_height;
     monitor_update_geometries();
     bar_side_padding = sidepad;
     bar_ver_padding  = (topbar == 1) ? vertpad : -vertpad;
@@ -877,7 +875,6 @@ void scan(void)
  */
 void runautostart(void)
 {
-    char       *pathpfx;
     char       *path;
     char       *xdgdatahome;
     char       *home;
@@ -890,59 +887,52 @@ void runautostart(void)
     // XDG_DATA_HOME存在则使用$XDG_DATA_HOME/dwm路径,不存在使用$HOME/.local/share/dwm
     xdgdatahome = getenv("XDG_DATA_HOME");
     if (xdgdatahome != NULL && *xdgdatahome != '\0') {
-        pathpfx = ecalloc(1, strlen(xdgdatahome) + strlen(dwmdir) + 2);
+        dwm_script_path = ecalloc(1, strlen(xdgdatahome) + strlen(dwmdir) + 2);
 
-        if (sprintf(pathpfx, "%s/%s", xdgdatahome, dwmdir) <= 0) {
-            free(pathpfx);
+        if (sprintf(dwm_script_path, "%s/%s", xdgdatahome, dwmdir) <= 0) {
+            free(dwm_script_path);
+            dwm_script_path = NULL;
             return;
         }
     } else {
-        pathpfx = ecalloc(1, strlen(home) + strlen(localshare) + strlen(dwmdir) + 3);
+        dwm_script_path = ecalloc(1, strlen(home) + strlen(localshare) + strlen(dwmdir) + 3);
 
-        if (sprintf(pathpfx, "%s/%s/%s", home, localshare, dwmdir) < 0) {
-            free(pathpfx);
+        if (sprintf(dwm_script_path, "%s/%s/%s", home, localshare, dwmdir) < 0) {
+            free(dwm_script_path);
+            dwm_script_path = NULL;
             return;
         }
     }
 
     /* 检查自动启动脚本目录是否存在 */
-    if (!(stat(pathpfx, &sb) == 0 && S_ISDIR(sb.st_mode))) {
+    if (!(stat(dwm_script_path, &sb) == 0 && S_ISDIR(sb.st_mode))) {
         /* 符合 XDG 的路径不存在或不是目录, 尝试 ~/.dwm */
-        char *pathpfx_new = realloc(pathpfx, strlen(home) + strlen(dwmdir) + 3);
+        char *pathpfx_new = realloc(dwm_script_path, strlen(home) + strlen(dwmdir) + 3);
         if (pathpfx_new == NULL) {
-            free(pathpfx);
+            free(dwm_script_path);
+            dwm_script_path = NULL;
             return;
         }
-        pathpfx = pathpfx_new;
+        dwm_script_path = pathpfx_new;
 
-        if (sprintf(pathpfx, "%s/.%s", home, dwmdir) <= 0) {
-            free(pathpfx);
+        if (sprintf(dwm_script_path, "%s/.%s", home, dwmdir) <= 0) {
+            free(dwm_script_path);
+            dwm_script_path = NULL;
             return;
         }
     }
 
-    /* try the blocking script first */
-    path = ecalloc(1, strlen(pathpfx) + strlen(autostartblocksh) + 2);
-    if (sprintf(path, "%s/%s", pathpfx, autostartblocksh) <= 0) {
+    path = ecalloc(1, strlen(dwm_script_path) + strlen(auto_start_script) + 2);
+    if (sprintf(path, "%s/%s", dwm_script_path, auto_start_script) <= 0) {
         free(path);
-        free(pathpfx);
-    }
-
-    if (access(path, X_OK) == 0) {
-        system(path);
-    }
-
-    /* now the non-blocking script */
-    if (sprintf(path, "%s/%s", pathpfx, autostartsh) <= 0) {
-        free(path);
-        free(pathpfx);
+        free(dwm_script_path);
+        dwm_script_path = NULL;
     }
 
     if (access(path, X_OK) == 0) {
         system(strcat(path, " &"));
     }
 
-    free(pathpfx);
     free(path);
 }
 
@@ -1055,6 +1045,24 @@ void spawn(const Arg *arg)
 }
 
 /**
+ * 运行app
+ */
+void app_starter(const Arg *arg)
+{
+    if (dwm_script_path != NULL) {
+        char *app = (char *)arg->v;
+        char *path = ecalloc(1, strlen(dwm_script_path) + strlen(app_starter_sh) + strlen(app) + 2);
+        if (sprintf(path, "%s/%s %s", dwm_script_path, app_starter_sh, app) <= 0) {
+            free(path);
+            free(dwm_script_path);
+        }
+        spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", path, NULL}});
+        fprintf(stderr, "path = %s\n", path);
+        free(path);
+    }
+}
+
+/**
  * 退出dwm
  */
 void quit(const Arg *arg)
@@ -1066,7 +1074,7 @@ void quit(const Arg *arg)
         if (m) {
             for (c = m->stack; c; c = c->next) {
                 if (c && HIDDEN(c)) {
-                    client_show_window(c);
+                    window_show(c);
                 }
             }
         }
@@ -1116,6 +1124,6 @@ void toggle_scratch(const Arg *arg)
             client_restack(select_monitor);
         }
     } else {
-        spawn(arg);
+        app_starter(arg);
     }
 }

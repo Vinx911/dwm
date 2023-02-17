@@ -131,7 +131,7 @@ void bar_draw_bar(Monitor *m)
     x = drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, m->ltsymbol, 0);
 
     // 托盘存在时 额外多-一个systrayspadding
-    system_tray_width += (system_tray_width ? systrayspadding : 0);
+    system_tray_width += (system_tray_width ? systray_padding : 0);
     w = bar_width(m) - statsu_bar_width - system_tray_width - x;
     if (w > bar_height) {
         if (n > 0) {
@@ -157,7 +157,7 @@ void bar_draw_bar(Monitor *m)
                     remainder--;
                 }
 
-                drw_text(drw, x, 0, tabw, bar_height, text_lr_pad / 2 + (c->icon ? c->icw + winiconspacing : 0),
+                drw_text(drw, x, 0, tabw, bar_height, text_lr_pad / 2 + (c->icon ? c->icw + win_icon_spacing : 0),
                          c->name, 0);
                 if (c->icon) {
                     drw_pic(drw, x + text_lr_pad / 2, (bar_height - c->ich) / 2, c->icw, c->ich, c->icon);
@@ -186,7 +186,7 @@ void bar_draw_bars(void)
         bar_draw_bar(m);
     }
 
-    if (show_systray && !systraypinning) {
+    if (show_systray && !systray_pinning) {
         systray_update(0);
     }
 }
