@@ -21,6 +21,8 @@ int status_bar_draw(Monitor *monitor, char *stext)
     int systray_width = 0;
     if (show_systray && monitor == systray_to_monitor(monitor)) {
         systray_width = systray_get_width();
+        // 托盘存在时 额外多-一个systrayspadding
+        systray_width += (systray_width ? systrayspadding : 0);
     }
 
     len = strlen(stext) + 1;
@@ -59,8 +61,7 @@ int status_bar_draw(Monitor *monitor, char *stext)
 
     text = p;
 
-    x = monitor->ww - w - systray_width - 2 * bar_side_padding
-      - (systray_width ? systrayspadding : 0);  // 托盘存在时 额外多-一个systrayspadding
+    x = bar_width(monitor) - w - systray_width;
 
     drw_setscheme(drw, scheme[colors_count()]);
     drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
@@ -260,4 +261,3 @@ void click_status_bar(const Arg *arg)
     sprintf(text, "%s %s %s &", statusbarscript, signal, button);
     system(text);
 }
-

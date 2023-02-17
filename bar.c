@@ -9,6 +9,14 @@
 #include "config.h"
 
 /**
+ * Bar宽度
+ */
+int bar_width(Monitor *m)
+{
+    return m->ww - 2 * bar_side_padding;
+}
+
+/**
  * 更新Bar位置
  */
 void bar_update_pos(Monitor *m)
@@ -18,7 +26,8 @@ void bar_update_pos(Monitor *m)
     if (m->showbar) {
         m->wh = m->wh - vertpad - bar_height;
         m->by = m->topbar ? m->wy : m->wy + m->wh + vertpad;  // 这里实际上是屏幕尺寸的y坐标
-        m->wy = m->topbar ? m->wy + bar_height + bar_ver_padding : m->wy;  // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
+        m->wy = m->topbar ? m->wy + bar_height + bar_ver_padding :
+                            m->wy;  // 窗口区域y坐标是屏幕尺寸的y坐标加上Bar的高度
     } else {
         m->by = -bar_height - bar_ver_padding;  // 不显示, 负值在屏幕外
     }
@@ -40,8 +49,8 @@ void bar_update_bars(void)
         if (m->bar_window) {
             continue;
         }
-        m->bar_window = XCreateWindow(display, root_window, m->wx + bar_side_padding, m->by + bar_ver_padding, m->ww - 2 * bar_side_padding, bar_height, 0, depth,
-                                      InputOutput, visual,
+        m->bar_window = XCreateWindow(display, root_window, m->wx + bar_side_padding, m->by + bar_ver_padding,
+                                      bar_width(m), bar_height, 0, depth, InputOutput, visual,
                                       CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &wa);
         XDefineCursor(display, m->bar_window, cursor[CurNormal]->cursor);
         if (show_systray && m == systray_to_monitor(m)) {
@@ -66,12 +75,14 @@ void bar_draw_bar(Monitor *m)
         return;
     }
 
-    drw_rect(drw, 0, 0, m->ww, bar_height, 1, 1);
+    // 清空bar
+    drw_setscheme(drw, scheme[SchemeNorm]);
+    drw_rect(drw, 0, 0, bar_width(m), bar_height, 1, 1);
 
     if (show_systray && m == systray_to_monitor(m)) {
         system_tray_width = systray_get_width();
         drw_setscheme(drw, scheme[SchemeNorm]);
-        drw_rect(drw, m->ww - system_tray_width - 2 * bar_side_padding, 0, system_tray_width, bar_height, 1, 1);
+        drw_rect(drw, bar_width(m) - system_tray_width, 0, system_tray_width, bar_height, 1, 1);
     }
 
     statsu_bar_width = status_bar_draw(m, status_text);
@@ -119,7 +130,10 @@ void bar_draw_bar(Monitor *m)
     drw_setscheme(drw, scheme[SchemeNorm]);
     x = drw_text(drw, x, 0, w, bar_height, text_lr_pad / 2, m->ltsymbol, 0);
 
-    if ((w = m->ww - statsu_bar_width - system_tray_width - x - 2 * bar_side_padding) > bar_height) {
+    // 托盘存在时 额外多-一个systrayspadding
+    system_tray_width += (system_tray_width ? systrayspadding : 0);
+    w = bar_width(m) - statsu_bar_width - system_tray_width - x;
+    if (w > bar_height) {
         if (n > 0) {
             int remainder = w % n;
             int tabw      = (1.0 / (double)n) * w + 1;
@@ -185,8 +199,8 @@ void toggle_bar(const Arg *arg)
     select_monitor->showbar = select_monitor->pertag->layout[select_monitor->pertag->curtag].showbars =
         !select_monitor->showbar;
     bar_update_pos(select_monitor);
-    XMoveResizeWindow(display, select_monitor->bar_window, select_monitor->wx + bar_side_padding, select_monitor->by + bar_ver_padding,
-                      select_monitor->ww - 2 * bar_side_padding, bar_height);
+    XMoveResizeWindow(display, select_monitor->bar_window, select_monitor->wx + bar_side_padding,
+                      select_monitor->by + bar_ver_padding, bar_width(select_monitor), bar_height);
     if (show_systray) {
         XWindowChanges wc;
         if (!select_monitor->showbar) {

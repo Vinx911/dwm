@@ -163,7 +163,7 @@ void button_press(XEvent *e)
         // 状态栏宽度
         int status_bar_width = status_bar_draw(select_monitor, status_text);
         // 状态栏起始x坐标
-        int status_bar_x = select_monitor->ww - status_bar_width - 2 * bar_side_padding - systray_width;
+        int status_bar_x = bar_width(select_monitor) - status_bar_width - systray_width;
 
         if (click_tag < TAGS_COUNT) {
             click  = ClkTagBar;
@@ -343,7 +343,7 @@ void configure_notify(XEvent *e)
                     }
                 }
                 XMoveResizeWindow(display, m->bar_window, m->wx + bar_side_padding, m->by + bar_ver_padding,
-                                  m->ww - 2 * bar_side_padding, bar_height);
+                                  bar_width(m), bar_height);
             }
             client_focus(NULL);
             layout_arrange(NULL);

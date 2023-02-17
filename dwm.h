@@ -76,8 +76,8 @@ extern void (*handler[LASTEvent])(XEvent *);
  */
 void update_numlock_mask(void);
 
-int  xerror(Display *dpy, XErrorEvent *ee);
-int  xerrordummy(Display *dpy, XErrorEvent *ee);
+int xerror(Display *dpy, XErrorEvent *ee);
+int xerrordummy(Display *dpy, XErrorEvent *ee);
 
 /**
  * 执行命令

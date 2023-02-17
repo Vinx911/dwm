@@ -2,6 +2,11 @@
 #define BAR_H
 
 /**
+ * Bar宽度
+ */
+int bar_width(Monitor *m);
+
+/**
  * 更新Bar
  */
 void bar_update_bars(void);
