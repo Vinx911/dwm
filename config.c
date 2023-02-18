@@ -89,10 +89,10 @@ const char *tags[16] = {"", "", "", "", "", "", "", "",
 // clang-format off
 const Rule rules[] = {
     /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor floatposition */
-    { "netease-cloud-music", NULL,                 NULL,             1 << 10,      1,           0,        0,           0,               -1, 0},
-    { "Thunar",              NULL,                 NULL,             1 << 9,       0,           0,        0,           0,               -1, 0 },
-    { "Google-chrome",       NULL,                 NULL,             1 << 10,      0,           0,        0,           1,               -1, 0 },
-    { "Clash for Windows",   NULL,                 NULL,             1 << 14,      1,           0,        1,           0,               -1, 0 },
+    { "netease-cloud-music", NULL,                 NULL,             1 << 12,      1,           0,        0,           0,               -1, 0},
+    { "nemo",                NULL,                 NULL,             1 << 10,      0,           0,        0,           0,               -1, 0 },
+    { "Google-chrome",       NULL,                 NULL,             1 << 11,      0,           0,        0,           1,               -1, 0 },
+    { "Clash for Windows",   NULL,                 NULL,             1 << 15,      1,           0,        1,           0,               -1, 0 },
 
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
@@ -215,15 +215,15 @@ const Key keys[] = {
     { MODKEY|ShiftMask,     XK_0,       move_to_tag,                {.ui = ~0 } },          /* super tab            |  移动到全部标签*/
 
 
-    { MODKEY|ControlMask,  XK_Up,       move_window,                {.ui = UP} },           /* super ctrl up        |  移动窗口 */
-    { MODKEY|ControlMask,  XK_Down,     move_window,                {.ui = DOWN} },         /* super ctrl down      |  移动窗口 */
-    { MODKEY|ControlMask,  XK_Left,     move_window,                {.ui = LEFT} },         /* super ctrl left      |  移动窗口 */
-    { MODKEY|ControlMask,  XK_Right,    move_window,                {.ui = RIGHT} },        /* super ctrl right     |  移动窗口 */
-
-    { MODKEY|Mod1Mask,     XK_Up,       resize_window,              {.ui = V_REDUCE} },     /* super alt up         |  调整窗口 */
-    { MODKEY|Mod1Mask,     XK_Down,     resize_window,              {.ui = V_EXPAND} },     /* super alt down       |  调整窗口 */
-    { MODKEY|Mod1Mask,     XK_Left,     resize_window,              {.ui = H_REDUCE} },     /* super alt left       |  调整窗口 */
-    { MODKEY|Mod1Mask,     XK_Right,    resize_window,              {.ui = H_EXPAND} },     /* super alt right      |  调整窗口 */
+    { MODKEY|ControlMask,   XK_Up,      move_window,                {.ui = UP} },           /* super ctrl up        |  移动窗口 */
+    { MODKEY|ControlMask,   XK_Down,    move_window,                {.ui = DOWN} },         /* super ctrl down      |  移动窗口 */
+    { MODKEY|ControlMask,   XK_Left,    move_window,                {.ui = LEFT} },         /* super ctrl left      |  移动窗口 */
+    { MODKEY|ControlMask,   XK_Right,   move_window,                {.ui = RIGHT} },        /* super ctrl right     |  移动窗口 */
+ 
+    { MODKEY|Mod1Mask,      XK_Up,      resize_window,              {.ui = V_REDUCE} },     /* super alt up         |  调整窗口 */
+    { MODKEY|Mod1Mask,      XK_Down,    resize_window,              {.ui = V_EXPAND} },     /* super alt down       |  调整窗口 */
+    { MODKEY|Mod1Mask,      XK_Left,    resize_window,              {.ui = H_REDUCE} },     /* super alt left       |  调整窗口 */
+    { MODKEY|Mod1Mask,      XK_Right,   resize_window,              {.ui = H_EXPAND} },     /* super alt right      |  调整窗口 */
 
     /* app_starter + APPNAME 启动App */
     { MODKEY,               XK_Return,  app_starter,            APPNAME("terminal") },
@@ -233,7 +233,7 @@ const Key keys[] = {
     { MODKEY|ShiftMask,     XK_p,       app_starter,            APPNAME("rofi_window") },
     { MODKEY|Mod1Mask,      XK_p,       app_starter,            APPNAME("rofi_custom") },
     { MODKEY|ControlMask,   XK_l,       app_starter,            APPNAME("blurlock") },
-    { MODKEY|ControlMask,   XK_x,       app_starter,            APPNAME("flameshot") },
+    { MODKEY|ShiftMask,     XK_x,       app_starter,            APPNAME("flameshot") },
     { MODKEY|ControlMask,   XK_k,       app_starter,            APPNAME("screenkey") },
 
     { MODKEY|ShiftMask,      XK_q,      spawn, SHCMD("kill -9 $(xprop | grep _NET_WM_PID | awk '{print $3}')") }, /* super shift q    | 选中某个窗口并强制kill */
@@ -252,13 +252,13 @@ const Key keys[] = {
     TAGKEYS(XK_7, 6, 0)
     TAGKEYS(XK_8, 7, 0)
     TAGKEYS(XK_9, 8, 0)
-    TAGKEYS(XK_a, 9,  "filemanager")
-    TAGKEYS(XK_b, 10, "browser")
-    TAGKEYS(XK_c, 11, "music")
-    TAGKEYS(XK_d, 12, "video")
-    TAGKEYS(XK_e, 13, "wechat")
-    TAGKEYS(XK_f, 14, "ssr")
-    TAGKEYS(XK_0, 15, 0)
+    TAGKEYS(XK_a, 9, 0)
+    TAGKEYS(XK_a, 10, "filemanager")
+    TAGKEYS(XK_b, 11, "browser")
+    TAGKEYS(XK_c, 12, "music")
+    TAGKEYS(XK_d, 13, "video")
+    TAGKEYS(XK_e, 14, "wechat")
+    TAGKEYS(XK_f, 15, "ssr")
 };
 // clang-format on
 

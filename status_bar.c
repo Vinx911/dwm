@@ -191,7 +191,7 @@ void click_status_bar(const Arg *arg)
     int   status_w = 0;
     int   iscode = 0, issignal = 0, signalindex = 0;
     char  signal[20];
-    char  text[100];
+    char  text[1024];
     char *button = "L";
     int   limit, max = sizeof(status_text);
 
@@ -258,6 +258,6 @@ void click_status_bar(const Arg *arg)
     }
 
     memset(text, '\0', sizeof(text));
-    sprintf(text, "%s %s %s &", status_bar_script, signal, button);
-    system(text);
+    sprintf(text, "%s/%s %s %s &", dwm_script_path, status_bar_script, signal, button);
+    spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", text, NULL}});
 }

@@ -36,6 +36,7 @@
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define TEXTW(X) (drw_fontset_getwidth(drw, (X)) + text_lr_pad)
 
+extern char        *dwm_script_path;   /* dwm脚本路径 */
 extern char         status_text[2048]; /* 状态栏文本 */
 extern int          screen;            /* 默认屏幕 */
 extern int          screen_width;      /* 默认屏幕的宽 */

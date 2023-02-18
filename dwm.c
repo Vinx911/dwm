@@ -1057,7 +1057,6 @@ void app_starter(const Arg *arg)
             free(dwm_script_path);
         }
         spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", path, NULL}});
-        fprintf(stderr, "path = %s\n", path);
         free(path);
     }
 }
