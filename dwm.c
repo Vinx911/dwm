@@ -33,19 +33,19 @@
      & (ShiftMask | ControlMask | Mod1Mask | Mod2Mask | Mod3Mask | Mod4Mask | Mod5Mask))
 
 /* variables */
-char        *dwm_script_path    = NULL;           /* dwm脚本路径 */
-char         status_text[2048];                   /* 状态栏文本 */
-int          screen;                              /* 默认屏幕 */
-int          screen_width;                        /* 默认屏幕的宽 */
-int          screen_height;                       /* 默认屏幕的高 */
-int          bar_height;                          /* bar 高度 */
-int          tag_bar_width;                       /* 标签栏宽度 */
-int          lt_symbol_width;                     /* 布局符号宽度 */
-int          statsu_bar_width;                    /* 状态栏宽度 */
-int          text_lr_pad;                         /* 文本左右填充的总和 */
-int          bar_ver_padding;                     /* vertical padding for bar */
-int          bar_side_padding;                    /* side padding for bar */
-unsigned int numlockmask = 0;                     /* 数字键盘锁按键掩码 */
+char        *dwm_script_path = NULL; /* dwm脚本路径 */
+char         status_text[2048];      /* 状态栏文本 */
+int          screen;                 /* 默认屏幕 */
+int          screen_width;           /* 默认屏幕的宽 */
+int          screen_height;          /* 默认屏幕的高 */
+int          bar_height;             /* bar 高度 */
+int          tag_bar_width;          /* 标签栏宽度 */
+int          lt_symbol_width;        /* 布局符号宽度 */
+int          statsu_bar_width;       /* 状态栏宽度 */
+int          text_lr_pad;            /* 文本左右填充的总和 */
+int          bar_ver_padding;        /* vertical padding for bar */
+int          bar_side_padding;       /* side padding for bar */
+unsigned int numlockmask = 0;        /* 数字键盘锁按键掩码 */
 
 Atom     wmatom[WMLast], netatom[NetLast], xatom[XLast];
 Cur     *cursor[CurLast]; /* 光标 */
@@ -173,7 +173,7 @@ void button_press(XEvent *e)
             arg.ui = ev->button;  // 1 => L，2 => M，3 => R, 5 => U, 6 => D
         } else {
             click = ClkBarEmpty;
-            
+
             x += lt_symbol_width;
             Client *client = monitor->clients;
 
@@ -876,11 +876,9 @@ void scan(void)
  */
 void run_auto_start(void)
 {
-    char cmd[100];
-    strcpy(cmd, auto_start_script);
-    if (access(cmd, X_OK) == 0) {
-        system(strcat(cmd, " &"));
-    }
+    char cmd[100] = {0};
+    sprintf(cmd, "%s &", auto_start_script);
+    system(cmd);
 }
 
 /**
@@ -995,8 +993,8 @@ void spawn(const Arg *arg)
  * 运行app
  */
 void app_starter(const Arg *arg)
-{    
-    char *app = (char *)arg->v;
+{
+    char *app  = (char *)arg->v;
     char *path = ecalloc(1, strlen(app_starter_sh) + strlen(app) + 2);
     if (sprintf(path, "%s %s", app_starter_sh, app) <= 0) {
         free(path);
