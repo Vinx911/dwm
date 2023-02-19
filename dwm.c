@@ -874,67 +874,13 @@ void scan(void)
 /**
  * 运行自启动脚本
  */
-void runautostart(void)
+void run_auto_start(void)
 {
-    char       *path;
-    char       *xdgdatahome;
-    char       *home;
-    struct stat sb;
-
-    home = getenv("HOME");
-    if (home == NULL)
-        return;
-
-    // XDG_DATA_HOME存在则使用$XDG_DATA_HOME/dwm路径,不存在使用$HOME/.local/share/dwm
-    xdgdatahome = getenv("XDG_DATA_HOME");
-    if (xdgdatahome != NULL && *xdgdatahome != '\0') {
-        dwm_script_path = ecalloc(1, strlen(xdgdatahome) + strlen(dwmdir) + 2);
-
-        if (sprintf(dwm_script_path, "%s/%s", xdgdatahome, dwmdir) <= 0) {
-            free(dwm_script_path);
-            dwm_script_path = NULL;
-            return;
-        }
-    } else {
-        dwm_script_path = ecalloc(1, strlen(home) + strlen(localshare) + strlen(dwmdir) + 3);
-
-        if (sprintf(dwm_script_path, "%s/%s/%s", home, localshare, dwmdir) < 0) {
-            free(dwm_script_path);
-            dwm_script_path = NULL;
-            return;
-        }
+    char cmd[100];
+    strcpy(cmd, auto_start_script);
+    if (access(cmd, X_OK) == 0) {
+        system(strcat(cmd, " &"));
     }
-
-    /* 检查自动启动脚本目录是否存在 */
-    if (!(stat(dwm_script_path, &sb) == 0 && S_ISDIR(sb.st_mode))) {
-        /* 符合 XDG 的路径不存在或不是目录, 尝试 ~/.dwm */
-        char *pathpfx_new = realloc(dwm_script_path, strlen(home) + strlen(dwmdir) + 3);
-        if (pathpfx_new == NULL) {
-            free(dwm_script_path);
-            dwm_script_path = NULL;
-            return;
-        }
-        dwm_script_path = pathpfx_new;
-
-        if (sprintf(dwm_script_path, "%s/.%s", home, dwmdir) <= 0) {
-            free(dwm_script_path);
-            dwm_script_path = NULL;
-            return;
-        }
-    }
-
-    path = ecalloc(1, strlen(dwm_script_path) + strlen(auto_start_script) + 2);
-    if (sprintf(path, "%s/%s", dwm_script_path, auto_start_script) <= 0) {
-        free(path);
-        free(dwm_script_path);
-        dwm_script_path = NULL;
-    }
-
-    if (access(path, X_OK) == 0) {
-        system(strcat(path, " &"));
-    }
-
-    free(path);
 }
 
 /**
@@ -1017,7 +963,7 @@ int main(int argc, char *argv[])
     scan();
 
     // 运行自启动脚本
-    runautostart();
+    run_auto_start();
 
     // 主循环
     run();
@@ -1049,17 +995,14 @@ void spawn(const Arg *arg)
  * 运行app
  */
 void app_starter(const Arg *arg)
-{
-    if (dwm_script_path != NULL) {
-        char *app = (char *)arg->v;
-        char *path = ecalloc(1, strlen(dwm_script_path) + strlen(app_starter_sh) + strlen(app) + 2);
-        if (sprintf(path, "%s/%s %s", dwm_script_path, app_starter_sh, app) <= 0) {
-            free(path);
-            free(dwm_script_path);
-        }
-        spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", path, NULL}});
+{    
+    char *app = (char *)arg->v;
+    char *path = ecalloc(1, strlen(app_starter_sh) + strlen(app) + 2);
+    if (sprintf(path, "%s %s", app_starter_sh, app) <= 0) {
         free(path);
     }
+    spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", path, NULL}});
+    free(path);
 }
 
 /**

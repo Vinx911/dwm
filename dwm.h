@@ -9,6 +9,7 @@
 #include <X11/keysym.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>

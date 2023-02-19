@@ -23,7 +23,7 @@ const int          vertpad           = 10;  /* vertical padding of bar */
 const int          sidepad           = 10;  /* horizontal padding of bar */
 const int          user_bar_height   = 8;   /* bar的额外高度, 总高度为 字体高度 + user_bar_height */
 const unsigned int systray_icon_size = 20;  /* 系统托盘图标尺寸 */
-const unsigned int systray_pinning   = 2;   /* 托盘跟随的显示器 0代表不指定显示器 */
+const unsigned int systray_pinning   = 1;   /* 托盘跟随的显示器 0代表不指定显示器 */
 const unsigned int systray_spacing   = 10;  /* 系统托盘间距 */
 const unsigned int systray_padding   = 2;   /* 托盘和状态栏的间隙 */
 const int systray_pinning_fail_first = 1; /* 1：pinning 失败，在第一台显示器上显示，0：在最后一台显示*/
@@ -37,11 +37,9 @@ const int   lock_full_screen = 0;    /* 强制焦点在全屏窗口上 */
 const char *broken = "broken"; /* 无法获取到窗口标题时显示文本 */
 
 /* 自定义脚本位置 */
-const char *dwmdir            = "dwm";          /* dwm目录 */
-const char *localshare        = ".local/share"; /* .local/share */
-const char *app_starter_sh    = "appstarter.sh";
-const char *auto_start_script = "autostart.sh";
-const char *status_bar_script = "statusbar.sh";
+const char *app_starter_sh    = "$DWM_PATH/appstarter.sh";
+const char *auto_start_script = "$DWM_PATH/autostart.sh";
+const char *status_bar_script = "$DWM_PATH/statusbar/statusbar.sh";
 
 /* 自定义 scratchpad instance */
 const char scratchpadname[] = {"scratchpad"};
@@ -228,13 +226,18 @@ const Key keys[] = {
     /* app_starter + APPNAME 启动App */
     { MODKEY,               XK_Return,  app_starter,            APPNAME("terminal") },
     { MODKEY|ShiftMask,     XK_Return,  toggle_scratch,         APPNAME("scratchpad") },
-    { MODKEY,               XK_p,       app_starter,            APPNAME("rofi_drun") },
-    { MODKEY|ControlMask,   XK_p,       app_starter,            APPNAME("rofi_run") },
-    { MODKEY|ShiftMask,     XK_p,       app_starter,            APPNAME("rofi_window") },
-    { MODKEY|Mod1Mask,      XK_p,       app_starter,            APPNAME("rofi_custom") },
+    { MODKEY,               XK_slash,   app_starter,            APPNAME("rofi_drun") },
+    { MODKEY|ControlMask,   XK_slash,   app_starter,            APPNAME("rofi_run") },
+    { MODKEY|ShiftMask,     XK_slash,   app_starter,            APPNAME("rofi_window") },
+    { MODKEY|Mod1Mask,      XK_slash,   app_starter,            APPNAME("rofi_custom") },
     { MODKEY|ControlMask,   XK_l,       app_starter,            APPNAME("blurlock") },
     { MODKEY|ShiftMask,     XK_x,       app_starter,            APPNAME("flameshot") },
     { MODKEY|ControlMask,   XK_k,       app_starter,            APPNAME("screenkey") },
+    { MODKEY,               XK_p,       app_starter,            APPNAME("set_screen") },
+
+    { 0,                    XF86XK_AudioMute,         spawn, SHCMD("$DWM_PATH/set_vol.sh toggle") },    /* Fn F5 | 禁音切换                 */
+    { 0,                    XF86XK_AudioRaiseVolume,  spawn, SHCMD("$DWM_PATH/set_vol.sh up") },        /* Fn F6   | 音量加                 */
+    { 0,                    XF86XK_AudioLowerVolume,  spawn, SHCMD("$DWM_PATH/set_vol.sh down") },      /* Fn F7 | 音量减                   */
 
     { MODKEY|ShiftMask,      XK_q,      spawn, SHCMD("kill -9 $(xprop | grep _NET_WM_PID | awk '{print $3}')") }, /* super shift q    | 选中某个窗口并强制kill */
     { ShiftMask|ControlMask, XK_c,      spawn, SHCMD("xclip -o | xclip -selection c") },                          /* super shift c    | 进阶复制               */

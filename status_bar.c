@@ -258,6 +258,6 @@ void click_status_bar(const Arg *arg)
     }
 
     memset(text, '\0', sizeof(text));
-    sprintf(text, "%s/%s %s %s &", dwm_script_path, status_bar_script, signal, button);
+    sprintf(text, "%s %s %s &", status_bar_script, signal, button);
     spawn(&(Arg){.v = (const char *[]){"/bin/sh", "-c", text, NULL}});
 }
