@@ -149,8 +149,9 @@ void button_press(XEvent *e)
         int lt_symbol_x = tag_bar_width + lt_symbol_width;
 
         // 系统托盘宽度
-        int systray_width = systray_get_width();
+        int systray_width = 0;
         if (select_monitor == systray_to_monitor(select_monitor)) {
+            systray_width = systray_get_width();
             if (systray_width != 0) {
                 systray_width = systray_width + systray_pinning + 2;
             }
