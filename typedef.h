@@ -156,7 +156,8 @@ struct Client
     int          oldstate;               /* 旧状态 */
     int          isfullscreen;           /* 全屏的 */
     int          isfakefullscreen;       /* 伪全屏的 */
-    int          nooverview;             /*不参与预览 */
+    int          nooverview;             /* 不参与预览 */
+    int          isnoborder;             /* 没有边框 */
     unsigned int icw, ich;
     Picture      icon;  /* 客户端窗口图标 */
     Client      *next;  /* 列表下一个客户端 */

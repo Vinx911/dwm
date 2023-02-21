@@ -652,6 +652,7 @@ void client_apply_rules(Client *c)
     /* rule matching */
     c->isfloating = 0;
     c->tags       = 0;
+    c->isnoborder = 0;
     XGetClassHint(display, c->win, &ch);
     class    = ch.res_class ? ch.res_class : broken;
     instance = ch.res_name ? ch.res_name : broken;
@@ -664,6 +665,8 @@ void client_apply_rules(Client *c)
             c->isfloating       = r->isfloating;
             c->isfakefullscreen = r->isfakefullscreen;
             c->nooverview       = r->nooverview;
+            c->isnoborder = r->noborder;
+            c->bw = c->isnoborder ? 0 : border_px;
             c->tags |= r->tags;
             for (m = monitor_list; m && m->num != r->monitor; m = m->next)
                 ;
@@ -742,8 +745,10 @@ void client_manage(Window w, XWindowAttributes *wa)
     c->h = c->oldh = wa->height;
     c->oldbw       = wa->border_width;
 
+
     client_update_icon(c);
     client_update_title(c);
+    fprintf(stderr, "name = %s, wa->x = %d, wa->y = %d \n",c->name, wa->x, wa->y );
     if (XGetTransientForHint(display, w, &trans) && (t = window_to_client(trans))) {
         c->mon  = t->mon;
         c->tags = t->tags;
@@ -760,7 +765,7 @@ void client_manage(Window w, XWindowAttributes *wa)
     }
     c->x  = MAX(c->x, c->mon->wx);
     c->y  = MAX(c->y, c->mon->wy);
-    c->bw = border_px;
+    wc.border_width = c->bw;
 
     select_monitor->tagset[select_monitor->seltags] &= ~scratchtag;
     if (!strcmp(c->name, scratchpadname)) {  // 便笺薄
@@ -771,7 +776,6 @@ void client_manage(Window w, XWindowAttributes *wa)
         c->y                                       = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
     }
 
-    wc.border_width = c->bw;
     XConfigureWindow(display, w, CWBorderWidth, &wc);
     XSetWindowBorder(display, w, scheme[SchemeNorm][ColBorder].pixel);
     client_configure(c); /* propagates border_width, if size doesn't change */

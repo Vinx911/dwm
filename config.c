@@ -87,11 +87,14 @@ const char *tags[16] = {"", "", "", "", "", "", "", "",
 // clang-format off
 const Rule rules[] = {
     /* class                 instance              title             tags mask     isfloating   noborder  nooverview   isfakefullscreen monitor floatposition */
-    { "netease-cloud-music", NULL,                 NULL,             1 << 12,      1,           0,        0,           0,               -1, 0},
+    { "netease-cloud-music", NULL,                 NULL,             1 << 12,      1,           0,        0,           0,               -1, 0 },
     { "nemo",                NULL,                 NULL,             1 << 10,      0,           0,        0,           0,               -1, 0 },
     { "Google-chrome",       NULL,                 NULL,             1 << 11,      0,           0,        0,           1,               -1, 0 },
     { "Clash for Windows",   NULL,                 NULL,             1 << 15,      1,           0,        1,           0,               -1, 0 },
-
+    { "listen1",             NULL,                 NULL,             1 << 12,      1,           0,        0,           0,               -1, 0 },
+    { "xfce4-screenshooter", NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 0 },
+    { "xfce-polkit",         NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 5 },
+    { "dde-calendar",        NULL,                 NULL,             0,            1,           1,        0,           0,               -1, 0 },
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
     // {"music",                NULL,                 NULL,             1 << 10,      1,           1,        0,       -1 },
@@ -231,7 +234,7 @@ const Key keys[] = {
     { MODKEY|ShiftMask,     XK_slash,   app_starter,            APPNAME("rofi_window") },
     { MODKEY|Mod1Mask,      XK_slash,   app_starter,            APPNAME("rofi_custom") },
     { MODKEY|ControlMask,   XK_l,       app_starter,            APPNAME("blurlock") },
-    { MODKEY|ShiftMask,     XK_x,       app_starter,            APPNAME("flameshot") },
+    { MODKEY|ShiftMask,     XK_x,       app_starter,            APPNAME("screenshot") },
     { MODKEY|ControlMask,   XK_k,       app_starter,            APPNAME("screenkey") },
     { MODKEY,               XK_p,       app_starter,            APPNAME("set_screen") },
 
