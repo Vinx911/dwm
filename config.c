@@ -94,7 +94,7 @@ const Rule rules[] = {
     { "listen1",             NULL,                 NULL,             1 << 12,      1,           0,        0,           0,               -1, 0 },
     { "xfce4-screenshooter", NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 0 },
     { "xfce-polkit",         NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 5 },
-    { "dde-calendar",        NULL,                 NULL,             0,            1,           1,        0,           0,               -1, 0 },
+    { "chinese-calendar",    NULL,                 NULL,             0,            1,           1,        1,           0,               -1, 3 },
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
     // {"music",                NULL,                 NULL,             1 << 10,      1,           1,        0,       -1 },
