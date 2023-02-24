@@ -95,6 +95,7 @@ const Rule rules[] = {
     { "xfce4-screenshooter", NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 0 },
     { "xfce-polkit",         NULL,                 NULL,             0,            1,           0,        0,           0,               -1, 5 },
     { "chinese-calendar",    NULL,                 NULL,             0,            1,           1,        1,           0,               -1, 3 },
+    { "gnome-calculator",    NULL,                 NULL,             0,            1,           1,        0,           0,               -1, 0 },
 
     // {"netease-cloud-music",  NULL,                 NULL,             1 << 10,      1,           0,        0,       -1 },
     // {"music",                NULL,                 NULL,             1 << 10,      1,           1,        0,       -1 },
