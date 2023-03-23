@@ -182,6 +182,8 @@ const Key keys[] = {
  
     { MODKEY,               XK_comma,   set_mfact,                  {.f = -0.05} },         /* super ,              |  缩小主工作区 */
     { MODKEY,               XK_period,  set_mfact,                  {.f = +0.05} },         /* super .              |  放大主工作区 */
+    { MODKEY|ShiftMask,     XK_comma,   set_mfact,                  {.f = -0.005} },        /* super ,              |  缩小主工作区 */
+    { MODKEY|ShiftMask,     XK_period,  set_mfact,                  {.f = +0.005} },        /* super .              |  放大主工作区 */
  
     { MODKEY,               XK_r,       rotate_client_stack,        {.i = +1 } },           /* super r              |  旋转窗口栈 */
     { MODKEY|ShiftMask,     XK_r,       rotate_client_stack,        {.i = -1 } },           /* super shift r        |  反向旋转窗口栈 */
@@ -190,15 +192,15 @@ const Key keys[] = {
     { MODKEY|ShiftMask,     XK_j,       focusstackhid,              {.i = +1 } },           /* super ctrl -         |  切换隐藏窗口焦点 */
     { MODKEY|ShiftMask,     XK_k,       focusstackhid,              {.i = -1 } },           /* super ctrl -         |  反向切换隐藏窗口焦点 */
  
-    { MODKEY|ControlMask,   XK_comma,   focus_monitor,              {.i = -1 } },           /* super ctrl ,         |  光标移动到上一个显示器 */
-    { MODKEY|ControlMask,   XK_period,  focus_monitor,              {.i = +1 } },           /* super ctrl .         |  光标移动到下一个显示器 */
-    { MODKEY|ShiftMask,     XK_comma,   move_to_monitor,            {.i = -1 } },           /* super shift .        |  将聚焦窗口移动到上一个显示器 */
-    { MODKEY|ShiftMask,     XK_period,  move_to_monitor,            {.i = +1 } },           /* super shift .        |  将聚焦窗口移动到下一个显示器 */
+    { MODKEY|ControlMask,   XK_bracketleft,   focus_monitor,              {.i = -1 } },           /* super ctrl ,         |  光标移动到上一个显示器 */
+    { MODKEY|ControlMask,   XK_bracketright,  focus_monitor,              {.i = +1 } },           /* super ctrl .         |  光标移动到下一个显示器 */
+    { MODKEY|ShiftMask,     XK_bracketleft,   move_to_monitor,            {.i = -1 } },           /* super shift .        |  将聚焦窗口移动到上一个显示器 */
+    { MODKEY|ShiftMask,     XK_bracketright,  move_to_monitor,            {.i = +1 } },           /* super shift .        |  将聚焦窗口移动到下一个显示器 */
  
     { MODKEY,               XK_h,       hide_window,                {0} },                  /* super h              |  隐藏窗口 */
     { MODKEY,               XK_s,       show_client,                {0} },                  /* super s              |  显示窗口 */
     { MODKEY|ShiftMask,     XK_s,       show_all_client,            {0} },                  /* super shift s        |  显示全部窗口 */
-	{ MODKEY,               XK_o,       show_only_or_all,           {0} },                  /* super o              |  切换 只显示一个窗口 / 全部显示 */
+    { MODKEY,               XK_o,       show_only_or_all,           {0} },                  /* super o              |  切换 只显示一个窗口 / 全部显示 */
 
     { MODKEY|ShiftMask,     XK_z,       zoom,                       {0} },                  /* super shift z        |  将当前聚焦窗口置为主窗口 */
  
