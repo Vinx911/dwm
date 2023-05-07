@@ -81,8 +81,8 @@ const unsigned int alphas[][3] = {
 
 /* 自定义tag名称 */
 /* 自定义特定实例的显示状态 */
-const char *tags[16] = {"", "", "", "", "", "", "", "",
-                        "", "", "", "", "", "", "﬐", ""};
+const char *tags[16] = {"󰎤", "󰎧", "󰎪", "󰎭", "󰎱", "󰎳", "󰎶", "󰎹",
+                        "󰎼", "", "", "", "󰝚", "", "󰘑", ""};
 
 // clang-format off
 const Rule rules[] = {
@@ -135,7 +135,7 @@ const Layout overviewlayout = {"", overview};
 /* 自定义布局 */
 const Layout layouts[] = {
     {"﬿", tile},       /* 平铺*/
-    {"﩯", magic_grid}, /* 网格 */
+    {"", magic_grid}, /* 网格 */
     {"", monocle},    /* 单窗口 */
     {"", NULL},       /* 浮动 */
 };
