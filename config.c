@@ -134,7 +134,7 @@ const Layout overviewlayout = {"", overview};
 
 /* 自定义布局 */
 const Layout layouts[] = {
-    {"﬿", tile},       /* 平铺*/
+    {"󰙀", tile},       /* 平铺*/
     {"", magic_grid}, /* 网格 */
     {"", monocle},    /* 单窗口 */
     {"", NULL},       /* 浮动 */
