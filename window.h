@@ -37,24 +37,9 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
 int window_get_root_ptr(int *x, int *y);
 
 /**
- * 显示窗口
- */
-void window_show(Client *c);
-
-/**
- * 隐藏客户端
- */
-void window_hide(Client *c);
-
-/**
  * 发送事件
  */
 int window_send_event(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
-
-/**
- * 隐藏窗口
- */
-void hide_window(const Arg *arg);
 
 
 #endif  // WINDOW_H

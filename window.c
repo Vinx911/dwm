@@ -227,44 +227,6 @@ Picture window_get_icon_prop(Window win, unsigned int *picw, unsigned int *pich)
 }
 
 /**
- * 显示窗口
- */
-void window_show(Client *c)
-{
-    if (!c || !HIDDEN(c))
-        return;
-
-    XMapWindow(display, c->win);
-    client_set_state(c, NormalState);
-    layout_arrange(c->mon);
-}
-
-/**
- * 隐藏客户端
- */
-void window_hide(Client *c)
-{
-    if (!c || HIDDEN(c))
-        return;
-
-    Window                   w = c->win;
-    static XWindowAttributes ra, ca;
-
-    // more or less taken directly from blackbox's hide_window() function
-    XGrabServer(display);
-    XGetWindowAttributes(display, root_window, &ra);
-    XGetWindowAttributes(display, w, &ca);
-    // prevent UnmapNotify events
-    XSelectInput(display, root_window, ra.your_event_mask & ~SubstructureNotifyMask);
-    XSelectInput(display, w, ca.your_event_mask & ~StructureNotifyMask);
-    XUnmapWindow(display, w);
-    client_set_state(c, IconicState);
-    XSelectInput(display, root_window, ra.your_event_mask);
-    XSelectInput(display, w, ca.your_event_mask);
-    XUngrabServer(display);
-}
-
-/**
  * 发送事件
  */
 int window_send_event(Window w, Atom proto, int mask, long d0, long d1, long d2, long d3, long d4)
@@ -298,14 +260,4 @@ int window_send_event(Window w, Atom proto, int mask, long d0, long d1, long d2,
         XSendEvent(display, w, False, mask, &ev);
     }
     return exists;
-}
-
-/**
- * 隐藏窗口
- */
-void hide_window(const Arg *arg)
-{
-    window_hide(select_monitor->select);
-    client_focus(NULL);
-    layout_arrange(select_monitor);
 }

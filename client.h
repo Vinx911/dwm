@@ -47,6 +47,16 @@ void client_pop(Client *c);
 void client_update_list();
 
 /**
+ * 显示窗口
+ */
+void client_show(Client *c);
+
+/**
+ * 隐藏客户端
+ */
+void client_hide(Client *c);
+
+/**
  * 重新堆叠窗口
  */
 void client_restack(Monitor *m);
@@ -167,6 +177,11 @@ void client_send_to_monitor(Client *c, Monitor *m);
  * 下一个平铺的客户端
  */
 Client *client_next_tiled(Client *c);
+
+/**
+ * 隐藏客户端
+ */
+void hide_client(const Arg *arg);
 
 /**
  * 显示客户端

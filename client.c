@@ -11,6 +11,10 @@
 #define BUTTONMASK (ButtonPressMask | ButtonReleaseMask)
 #define MOUSEMASK (BUTTONMASK | PointerMotionMask)
 
+// 隐藏窗口栈
+static int hidden_win_stack_top = -1;
+static Client *hidden_win_stack[100];
+
 /**
  * 客户端附加到列表中
  */
@@ -593,7 +597,7 @@ void client_focus(Client *c)
         client_unfocus(select_monitor->select, 0);
 
         if (select_monitor->hidsel) {  // 之前焦点窗口为隐藏窗口, 焦点取消后继续隐藏
-            window_hide(select_monitor->select);
+            client_hide(select_monitor->select);
             if (c) {
                 layout_arrange(c->mon);  // 隐藏窗口后重新布局
             }
@@ -867,14 +871,77 @@ Client *client_next_tiled(Client *c)
 }
 
 /**
+ * 显示窗口
+ */
+void client_show(Client *c)
+{
+    if (!c || !HIDDEN(c))
+        return;
+        
+    XMapWindow(display, c->win);
+    client_set_state(c, NormalState);
+    layout_arrange(c->mon);
+
+    hidden_win_stack_top--;
+}
+
+/**
+ * 隐藏客户端
+ */
+void client_hide(Client *c)
+{
+    if (!c || HIDDEN(c))
+        return;
+
+    Window                   w = c->win;
+    static XWindowAttributes ra, ca;
+
+    // more or less taken directly from blackbox's hide_window() function
+    XGrabServer(display);
+    XGetWindowAttributes(display, root_window, &ra);
+    XGetWindowAttributes(display, w, &ca);
+    // prevent UnmapNotify events
+    XSelectInput(display, root_window, ra.your_event_mask & ~SubstructureNotifyMask);
+    XSelectInput(display, w, ca.your_event_mask & ~StructureNotifyMask);
+    XUnmapWindow(display, w);
+    client_set_state(c, IconicState);
+    XSelectInput(display, root_window, ra.your_event_mask);
+    XSelectInput(display, w, ca.your_event_mask);
+    XUngrabServer(display);
+
+    hidden_win_stack[++hidden_win_stack_top] = c;
+}
+
+/**
+ * 隐藏窗口
+ */
+void hide_client(const Arg *arg)
+{
+    client_hide(select_monitor->select);
+    client_focus(NULL);
+    layout_arrange(select_monitor);
+}
+
+/**
  * 显示客户端
  */
 void show_client(const Arg *arg)
 {
-    if (select_monitor->hidsel) {
-        select_monitor->hidsel = 0;
+    int i = hidden_win_stack_top;
+    Client *c;
+    while (i > -1) {
+        c= hidden_win_stack[i];
+        if (HIDDEN(c) && ISVISIBLE(c)) {
+            client_show(c);
+            client_focus(c);
+            client_restack(select_monitor);
+            for (int j = i; j < hidden_win_stack_top+1; ++j) {
+                hidden_win_stack[j] = hidden_win_stack[j + 1];
+            }
+            return;
+        }
+        --i;
     }
-    window_show(select_monitor->select);
 }
 
 /**
@@ -886,7 +953,7 @@ void show_all_client(const Arg *arg)
     select_monitor->hidsel = 0;
     for (c = select_monitor->clients; c; c = c->next) {
         if (ISVISIBLE(c)) {
-            window_show(c);
+            client_show(c);
         }
     }
     if (!select_monitor->select) {
@@ -1178,7 +1245,7 @@ void focus_stack(int inc, int hid)
         client_focus(c);
         client_restack(select_monitor);
         if (HIDDEN(c)) {
-            window_show(c);
+            client_show(c);
             c->mon->hidsel = 1;
         }
         client_pointer_focus_win(c);
@@ -1213,12 +1280,12 @@ void toggle_window(const Arg *arg)
     }
 
     if (c == select_monitor->select) {
-        window_hide(c);
+        client_hide(c);
         client_focus(NULL);
         layout_arrange(c->mon);
     } else {
         if (HIDDEN(c)) {
-            window_show(c);
+            client_show(c);
         }
         client_focus(c);
         client_restack(select_monitor);
@@ -1322,10 +1389,10 @@ void hide_other_wins(const Arg *arg)
     Client *c = (Client *)arg->v, *tc = NULL;
     for (tc = select_monitor->clients; tc; tc = tc->next) {
         if (tc != c && ISVISIBLE(tc)) {
-            window_hide(tc);
+            client_hide(tc);
         }
     }
-    window_show(c);
+    client_show(c);
     client_focus(c);
     layout_arrange(c->mon);
 }
@@ -1353,7 +1420,7 @@ void show_only_or_all(const Arg *arg)
     if (is_single_win(NULL) || !select_monitor->select) {
         for (c = select_monitor->clients; c; c = c->next) {
             if (ISVISIBLE(c)) {
-                window_show(c);
+                client_show(c);
             }
         }
     } else {

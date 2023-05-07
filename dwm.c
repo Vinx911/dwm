@@ -1015,7 +1015,7 @@ void quit(const Arg *arg)
         if (m) {
             for (c = m->stack; c; c = c->next) {
                 if (c && HIDDEN(c)) {
-                    window_show(c);
+                    client_show(c);
                 }
             }
         }

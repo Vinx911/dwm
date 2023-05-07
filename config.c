@@ -197,7 +197,7 @@ const Key keys[] = {
     { MODKEY|ShiftMask,     XK_bracketleft,   move_to_monitor,            {.i = -1 } },           /* super shift .        |  将聚焦窗口移动到上一个显示器 */
     { MODKEY|ShiftMask,     XK_bracketright,  move_to_monitor,            {.i = +1 } },           /* super shift .        |  将聚焦窗口移动到下一个显示器 */
  
-    { MODKEY,               XK_h,       hide_window,                {0} },                  /* super h              |  隐藏窗口 */
+    { MODKEY,               XK_h,       hide_client,                {0} },                  /* super h              |  隐藏窗口 */
     { MODKEY,               XK_s,       show_client,                {0} },                  /* super s              |  显示窗口 */
     { MODKEY|ShiftMask,     XK_s,       show_all_client,            {0} },                  /* super shift s        |  显示全部窗口 */
     { MODKEY,               XK_o,       show_only_or_all,           {0} },                  /* super o              |  切换 只显示一个窗口 / 全部显示 */
